@@ -94,14 +94,16 @@ Expected: FAIL（`src/config` 不存在）
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "dist",
-    "rootDir": ".",
+    "rootDir": "src",
     "strict": true,
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["src", "tests", "scripts"]
+  "include": ["src"]
 }
 ```
+
+（注：只编译 `src`，产物路径 `dist/index.js`、`dist/transport/web-bridge.js`，与 `start` 脚本和 smoke 导入一致；`tests/` 由 vitest 直接跑 TS 源码，不进 tsc 编译范围。）
 
 `vitest.config.ts`：
 ```ts
