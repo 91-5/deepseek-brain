@@ -37,7 +37,7 @@
 ```ts
 // tests/config.test.ts
 import { describe, it, expect } from 'vitest'
-import { loadConfig } from '../src/config'
+import { loadConfig } from '../src/config.js'
 
 describe('loadConfig', () => {
   it('返回默认配置', () => {
@@ -199,8 +199,8 @@ git init && git add -A && git commit -m "chore: scaffold project with config mod
 ```ts
 // tests/system-prompt.test.ts
 import { describe, it, expect } from 'vitest'
-import { buildSystemPrompt } from '../src/protocol/system-prompt'
-import type { ToolSpec } from '../src/types'
+import { buildSystemPrompt } from '../src/protocol/system-prompt.js'
+import type { ToolSpec } from '../src/types.js'
 
 describe('buildSystemPrompt', () => {
   it('包含工具目录与调用协议', () => {
@@ -250,7 +250,7 @@ export interface OpenAIMessage {
 
 `src/protocol/system-prompt.ts`：
 ```ts
-import type { ToolSpec } from '../types'
+import type { ToolSpec } from '../types.js'
 
 const TEMPLATE = `你是任务规划大脑。需要调用工具时，输出一个代码块：
 \`\`\`tool_call
@@ -300,8 +300,8 @@ git add -A && git commit -m "feat(protocol): shared types and tool-protocol syst
 ```ts
 // tests/parser.test.ts
 import { describe, it, expect } from 'vitest'
-import { parseModelOutput, findFenceStart } from '../src/protocol/parser'
-import type { ToolSpec } from '../src/types'
+import { parseModelOutput, findFenceStart } from '../src/protocol/parser.js'
+import type { ToolSpec } from '../src/types.js'
 
 const TOOLS: ToolSpec[] = [{ name: 'read_file', description: '读', parameters: {} }]
 
@@ -355,7 +355,7 @@ Expected: FAIL（模块不存在）
 
 `src/protocol/parser.ts`：
 ```ts
-import type { ToolSpec } from '../types'
+import type { ToolSpec } from '../types.js'
 
 export type ParseResult =
   | { kind: 'text'; text: string }
@@ -441,9 +441,9 @@ git add -A && git commit -m "feat(protocol): tolerant tool_call parser with fenc
 ```ts
 // tests/session.test.ts
 import { describe, it, expect } from 'vitest'
-import { computeSessionKey, newMessagesSince, estimateTokens } from '../src/session/manager'
-import { buildCompactPrompt, totalTokens } from '../src/session/compact'
-import type { OpenAIMessage } from '../src/types'
+import { computeSessionKey, newMessagesSince, estimateTokens } from '../src/session/manager.js'
+import { buildCompactPrompt, totalTokens } from '../src/session/compact.js'
+import type { OpenAIMessage } from '../src/types.js'
 
 const msgs: OpenAIMessage[] = [
   { role: 'system', content: 'sys' },
@@ -500,7 +500,7 @@ Expected: FAIL（模块不存在）
 `src/session/manager.ts`：
 ```ts
 import { createHash } from 'node:crypto'
-import type { OpenAIMessage } from '../types'
+import type { OpenAIMessage } from '../types.js'
 
 export function computeSessionKey(messages: OpenAIMessage[]): string {
   const prefix = messages.slice(0, Math.max(0, messages.length - 1))
@@ -518,8 +518,8 @@ export function estimateTokens(text: string): number {
 
 `src/session/compact.ts`：
 ```ts
-import type { OpenAIMessage } from '../types'
-import { estimateTokens } from './manager'
+import type { OpenAIMessage } from '../types.js'
+import { estimateTokens } from './manager.js'
 
 /** 超阈值时生成 compaction 指令（由 transport 发给 DeepSeek，纯文本，不涉及工具协议） */
 export function buildCompactPrompt(messages: OpenAIMessage[]): string {
@@ -560,7 +560,7 @@ git add -A && git commit -m "feat(session): prefix-hash session key, delta slici
 ```ts
 // tests/tool-result.test.ts
 import { describe, it, expect } from 'vitest'
-import { renderToolResult } from '../src/protocol/tool-result'
+import { renderToolResult } from '../src/protocol/tool-result.js'
 
 describe('renderToolResult', () => {
   it('渲染带标记的结果', () => {
@@ -623,10 +623,10 @@ git add -A && git commit -m "feat(protocol): tool result renderer with truncatio
 ```ts
 // tests/pipeline.test.ts
 import { describe, it, expect } from 'vitest'
-import { runAgentTurn } from '../src/pipeline'
-import type { Transport } from '../src/transport/types'
-import { loadConfig } from '../src/config'
-import type { OpenAIMessage, ToolSpec } from '../src/types'
+import { runAgentTurn } from '../src/pipeline.js'
+import type { Transport } from '../src/transport/types.js'
+import { loadConfig } from '../src/config.js'
+import type { OpenAIMessage, ToolSpec } from '../src/types.js'
 
 const TOOLS: ToolSpec[] = [{ name: 'read_file', description: '读', parameters: {} }]
 const cfg = loadConfig({})
@@ -717,13 +717,13 @@ export interface Transport {
 
 `src/pipeline.ts`：
 ```ts
-import type { AppConfig } from './config'
-import type { OpenAIMessage, ToolCall, ToolSpec } from './types'
-import { buildSystemPrompt } from './protocol/system-prompt'
-import { parseModelOutput } from './protocol/parser'
-import { renderToolResult } from './protocol/tool-result'
-import type { Transport } from './transport/types'
-import { computeSessionKey, newMessagesSince } from './session/manager'
+import type { AppConfig } from './config.js'
+import type { OpenAIMessage, ToolCall, ToolSpec } from './types.js'
+import { buildSystemPrompt } from './protocol/system-prompt.js'
+import { parseModelOutput } from './protocol/parser.js'
+import { renderToolResult } from './protocol/tool-result.js'
+import type { Transport } from './transport/types.js'
+import { computeSessionKey, newMessagesSince } from './session/manager.js'
 
 const FIX_HINT = '格式不正确。请严格按协议重新输出一个 ```tool_call 代码块，内含一个合法 JSON 对象：{"tool":"<工具名>","arguments":{...}}。'
 
@@ -826,10 +826,10 @@ git add -A && git commit -m "feat(pipeline): agent-turn orchestration with delta
 ```ts
 // tests/compact.test.ts
 import { describe, it, expect } from 'vitest'
-import { runAgentTurn } from '../src/pipeline'
-import type { Transport } from '../src/transport/types'
-import { loadConfig } from '../src/config'
-import type { OpenAIMessage, ToolSpec } from '../src/types'
+import { runAgentTurn } from '../src/pipeline.js'
+import type { Transport } from '../src/transport/types.js'
+import { loadConfig } from '../src/config.js'
+import type { OpenAIMessage, ToolSpec } from '../src/types.js'
 
 const TOOLS: ToolSpec[] = [{ name: 'read_file', description: '读', parameters: {} }]
 const cfg = loadConfig({ COMPACT_THRESHOLD: '20' }) // 强制触发 compaction
@@ -890,7 +890,7 @@ Expected: FAIL（`Transport` 无 `newChat`，Task 6 测试也会因类型变化�
 
 修改 `src/pipeline.ts`——文件顶部 import 区加入：
 ```ts
-import { buildCompactPrompt, totalTokens } from './session/compact'
+import { buildCompactPrompt, totalTokens } from './session/compact.js'
 ```
 
 在 `runAgentTurn` 的 `const delta = ...` 之后、主循环之前插入：
@@ -943,7 +943,7 @@ git add -A && git commit -m "feat(session): compaction orchestration with transc
 ```ts
 // tests/bucket-sse.test.ts
 import { describe, it, expect } from 'vitest'
-import { bucketSSE } from '../src/transport/web-bridge'
+import { bucketSSE } from '../src/transport/web-bridge.js'
 
 // fixture 来自 2026-09-29 spike 实测 SSE
 const FIXTURE = [
@@ -970,8 +970,8 @@ describe('bucketSSE', () => {
 ```ts
 // tests/web-bridge.live.test.ts
 import { describe, it } from 'vitest'
-import { createWebBridge } from '../src/transport/web-bridge'
-import { loadConfig } from '../src/config'
+import { createWebBridge } from '../src/transport/web-bridge.js'
+import { loadConfig } from '../src/config.js'
 
 describe.runIf(process.env.LIVE_TEST === '1')('web-bridge live', () => {
   it('驱动网页版完成一次生成', async () => {
@@ -1015,8 +1015,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import puppeteer from 'puppeteer-core'
-import type { AppConfig } from '../config'
-import type { GenerateChunk, HealthStatus, Transport } from './types'
+import type { AppConfig } from '../config.js'
+import type { GenerateChunk, HealthStatus, Transport } from './types.js'
 
 const CHROME = 'C:\\Users\\15812\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe'
 const NUPHUS_PROFILE = path.join(os.homedir(), 'AppData', 'Roaming', 'Nuphus', 'browser_profile_v2')
@@ -1292,11 +1292,11 @@ export interface OpenAIChatResponse {
 `src/server/http.ts`：
 ```ts
 import http from 'node:http'
-import type { OpenAIChatRequest, OpenAIChatResponse } from './openai-types'
-import type { AppConfig } from '../config'
-import { runAgentTurn } from '../pipeline'
-import type { OpenAIMessage, ToolSpec } from '../types'
-import type { Transport } from '../transport/types'
+import type { OpenAIChatRequest, OpenAIChatResponse } from './openai-types.js'
+import type { AppConfig } from '../config.js'
+import { runAgentTurn } from '../pipeline.js'
+import type { OpenAIMessage, ToolSpec } from '../types.js'
+import type { Transport } from '../transport/types.js'
 
 function toInternal(req: OpenAIChatRequest): { messages: OpenAIMessage[]; tools: ToolSpec[] } {
   const messages: OpenAIMessage[] = req.messages.map(m => ({
@@ -1385,9 +1385,9 @@ export function createHttpServer(config: AppConfig): http.Server {
 
 `src/index.ts`：
 ```ts
-import { loadConfig } from './config'
-import { createHttpServer, setTransportGetter } from './server/http'
-import { createWebBridge } from './transport/web-bridge'
+import { loadConfig } from './config.js'
+import { createHttpServer, setTransportGetter } from './server/http.js'
+import { createWebBridge } from './transport/web-bridge.js'
 
 async function main() {
   const config = loadConfig()
