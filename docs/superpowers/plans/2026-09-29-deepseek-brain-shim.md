@@ -771,7 +771,7 @@ export async function runAgentTurn(opts: {
   for (let attempt = 0; attempt <= config.maxFormatRetries; attempt++) {
     content = ''; reasoning = ''
     const iter = transport.generate({
-      prompt: buildPrompt(sendDelta, tools, attempt > 0, config.toolResultMaxChars),
+      prompt: buildPrompt(delta, tools, attempt > 0, config.toolResultMaxChars),
       thinking: config.thinking,
       timeoutMs: config.thinking ? config.thinkingTimeoutMs : config.timeoutMs,
     })
