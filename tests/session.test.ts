@@ -22,6 +22,11 @@ describe('computeSessionKey', () => {
   it('空输入也返回稳定 hash', () => {
     expect(computeSessionKey([])).toMatch(/^[a-f0-9]{64}$/)
   })
+  it('不同会话（首条 user 不同）key 不同', () => {
+    const k1 = computeSessionKey([{ role: 'system', content: 'sys' }, { role: 'user', content: '问题A' }])
+    const k2 = computeSessionKey([{ role: 'system', content: 'sys' }, { role: 'user', content: '问题B' }])
+    expect(k1).not.toBe(k2)
+  })
 })
 describe('newMessagesSince', () => {
   it('返回 sentCount 之后的增量', () => {
