@@ -1,7 +1,7 @@
 import type { AppConfig } from './config.js'
 import type { OpenAIMessage, ToolCall, ToolSpec } from './types.js'
 import { buildSystemPrompt } from './protocol/system-prompt.js'
-import { parseModelOutput, findFenceStart, type ParseResult } from './protocol/parser.js'
+import { parseModelOutput } from './protocol/parser.js'
 import { renderToolResult } from './protocol/tool-result.js'
 import type { Transport } from './transport/types.js'
 import { computeSessionKey, newMessagesSince } from './session/manager.js'
@@ -33,15 +33,6 @@ export interface TurnResult {
  */
 function initialSentCount(messages: OpenAIMessage[]): number {
   return messages.map(m => m.role).lastIndexOf('assistant') + 1
-}
-
-/** 首轮只校验首个完整 fence（协议口径「首个 ```tool_call 代码块」）：首个 fence 解析失败即判格式错误 */
-function parseFirstFence(raw: string, tools: ToolSpec[]): ParseResult {
-  const start = findFenceStart(raw)
-  if (start === -1) return { kind: 'text', text: raw }
-  const close = raw.indexOf('```', start + FENCE_OPEN.length)
-  const end = close === -1 ? raw.length : close + 3
-  return parseModelOutput(raw.slice(start, end), tools)
 }
 
 /** delta 只取 user/tool 消息：assistant 的历史动作网页会话里模型自己已见过 */
@@ -81,7 +72,7 @@ export async function runAgentTurn(opts: {
       if (chunk.content) content += chunk.content
       usageTokens += Math.ceil(((chunk.reasoning ?? '') + (chunk.content ?? '')).length / 2)
     }
-    const parsed = attempt === 0 ? parseFirstFence(content, tools) : parseModelOutput(content, tools)
+    const parsed = parseModelOutput(content, tools)
     if (parsed.kind === 'tool_call') {
       const tc: ToolCall = { id: `call_${Date.now().toString(36)}`, name: parsed.tool, arguments: parsed.arguments }
       sessions.set(key, { chatSessionId: transport.lastChatSessionId(), sentCount: messages.length })
@@ -93,11 +84,6 @@ export async function runAgentTurn(opts: {
       return { content, reasoning, usageTokens }
     }
     if (attempt === config.maxFormatRetries) break
-  }
-  const finalParsed = parseModelOutput(content, tools)
-  if (finalParsed.kind === 'text' && !content.includes(FENCE_OPEN)) {
-    sessions.set(key, { chatSessionId: transport.lastChatSessionId(), sentCount: messages.length })
-    return { content: finalParsed.text, reasoning, usageTokens }
   }
   throw new FormatGiveUpError()
 }
