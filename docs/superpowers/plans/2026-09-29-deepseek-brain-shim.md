@@ -909,7 +909,7 @@ import { buildCompactPrompt, totalTokens } from './session/compact.js'
   }
 ```
 
-并把主循环里的 `buildPrompt(delta, tools, attempt > 0)` 改为 `buildPrompt(sendDelta, tools, attempt > 0)`。
+并把主循环里的 `buildPrompt(delta, tools, attempt > 0, config.toolResultMaxChars)` 改为 `buildPrompt(sendDelta, tools, attempt > 0, config.toolResultMaxChars)`。
 
 注意：compaction 后 `sessions.set(key, {sentCount: 0})` 意味着下一轮又视作首轮发全量——正确，因为 DeepSeek 侧已是新会话。
 
