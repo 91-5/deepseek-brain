@@ -108,20 +108,42 @@ export function resolveStartUrl(entry: ResumeEntry | null): string {
   return entry ? chatUrlFor(entry.chatSessionId) : CHAT_URL
 }
 
+/**
+ * DeepSeek 网页 SSE 分流（协议实测修订，2026-09-30 首跑抓包）：
+ * - JSON-Patch 增量流：带 p/o 的行是操作，**无 p/o 的行是上一个 content 路径的延续**（只有 v）
+ * - `response/fragments` 的数组快照出现 type="RESPONSE" 的 fragment 是思考→答案的判别标志
+ * - elapsed_secs（字符串!/status/usage BATCH 都是元数据，不进正文
+ * - 答案 fragment 创建时的 content 快照是前缀，后续 -1/content 增量接续（去重防叠字）
+ */
 export function bucketSSE(sse: string): { reasoning: string; content: string } {
   let reasoning = '', content = ''
+  let lastPath = ''
+  let inAnswer = false
+  let answerSeed = ''
   for (const line of sse.split('\n')) {
     if (!line.startsWith('data:')) continue
     const payload = line.slice(5).trim()
     if (!payload || payload === '[DONE]') continue
-    let obj: { p?: string; v?: unknown }
+    let obj: { p?: string; o?: string; v?: unknown }
     try { obj = JSON.parse(payload) } catch { continue }
-    const v = obj.v
-    if (typeof v !== 'string') continue
-    const p = String(obj.p ?? '')
-    if (/thinking|reason/i.test(p)) reasoning += v
-    else if (!/status/i.test(p)) content += v // response/status SET 等元数据不是正文
+    const hasOp = obj.p !== undefined || obj.o !== undefined
+    if (hasOp) lastPath = String(obj.p ?? '')
+    if (hasOp && lastPath === 'response/fragments') {
+      // 数组快照：{"id":3,"type":"RESPONSE","content":"我是"} —— 答案 fragment 诞生（v 可能是原生数组或 JSON 字符串）
+      let arr: unknown = obj.v
+      if (typeof arr === 'string') { try { arr = JSON.parse(arr) } catch { arr = null } }
+      if (Array.isArray(arr)) {
+        const resp = (arr as Array<{ type?: string; content?: string }>).filter(f => f?.type === 'RESPONSE').at(-1)
+        if (resp) { inAnswer = true; answerSeed = resp.content ?? '' }
+      }
+      continue
+    }
+    if (!/\/content$/.test(lastPath)) continue // elapsed_secs/status/response(BATCH usage) 等元数据
+    if (typeof obj.v !== 'string') continue
+    if (inAnswer) content += obj.v
+    else reasoning += obj.v
   }
+  if (inAnswer && answerSeed && !content.startsWith(answerSeed)) content = answerSeed + content
   return { reasoning, content }
 }
 
@@ -147,7 +169,11 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
 
   async function ensureProfileDir(): Promise<void> {
     const dest = path.resolve(config.browser.profileDir)
-    if (fs.existsSync(path.join(dest, 'Default', 'Cookies'))) return
+    // 判据要同时认新旧布局：新版 Chrome 的 Cookies 在 Default\Network\Cookies（只查 Default\Cookies
+    // 会永远为 false，导致每次启动重覆 Nuphus profile、盖掉 shim Chrome 里的登录态）
+    const seeded = fs.existsSync(path.join(dest, 'Default', 'Network', 'Cookies'))
+      || fs.existsSync(path.join(dest, 'Default', 'Cookies'))
+    if (seeded) return
     fs.mkdirSync(dest, { recursive: true })
     try {
       fs.cpSync(NUPHUS_PROFILE, dest, { recursive: true, errorOnExist: false })
@@ -319,6 +345,13 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
               if (st.done) {
                 const err = completionError(st.status)
                 if (err) throw new Error(err)
+                // 流结束兜底（只能在这里做：局部解析时 reasoning 还只是思考片段，
+                // 提前挪 content 会把思考当正文吐出去并顶高 emittedC 吞掉真答案）
+                const bf = bucketSSE(st.resp)
+                let outR = bf.reasoning, outC = bf.content
+                if (!outC && outR) { outC = outR; outR = '' }
+                if (outR.length > emittedR) { yield { reasoning: outR.slice(emittedR) }; emittedR = outR.length }
+                if (outC.length > emittedC) { yield { content: outC.slice(emittedC) }; emittedC = outC.length }
                 const m = page.url().match(/\/a\/chat\/s\/([0-9a-f-]{36})/)
                 if (m) chatSessionId = m[1]
                 return

@@ -1,0 +1,3050 @@
+event: ready
+data: {"request_message_id":3,"response_message_id":4,"model_type":"default"}
+
+event: update_session
+data: {"updated_at":1790750724.9963279}
+
+data: {"v":{"response":{"message_id":4,"parent_id":3,"model":"","role":"ASSISTANT","thinking_enabled":true,"ban_edit":false,"ban_regenerate":false,"status":"WIP","incomplete_message":null,"accumulated_token_usage":164,"feedback":null,"inserted_at":1790750724.984464,"search_enabled":true,"fragments":[{"id":2,"type":"THINK","content":"我们需要","elapsed_secs":null,"references":[],"stage_id":1}],"conversation_mode":"DEFAULT","has_pending_fragment":false,"auto_continue":false,"search_triggered":false,"extra_search_providers":[]}}}
+
+data: {"p":"response/fragments/-1/content","o":"APPEND","v":"回答"}
+
+data: {"v":"用户"}
+
+data: {"v":"。"}
+
+data: {"v":"用户"}
+
+data: {"v":"要求"}
+
+data: {"v":"格式"}
+
+data: {"v":"："}
+
+data: {"v":"需要"}
+
+data: {"v":"调用"}
+
+data: {"v":"工具"}
+
+data: {"v":"时"}
+
+data: {"v":"输出"}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"。"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"："}
+
+data: {"v":"[]"}
+
+data: {"v":" "}
+
+data: {"v":"空"}
+
+data: {"v":"。"}
+
+data: {"v":"现在"}
+
+data: {"v":"用户"}
+
+data: {"v":"说"}
+
+data: {"v":"“"}
+
+data: {"v":"格式"}
+
+data: {"v":"不正确"}
+
+data: {"v":"。"}
+
+data: {"v":"请"}
+
+data: {"v":"严格"}
+
+data: {"v":"按"}
+
+data: {"v":"协议"}
+
+data: {"v":"重新"}
+
+data: {"v":"输出"}
+
+data: {"v":"一个"}
+
+data: {"v":" ```"}
+
+data: {"v":"tool"}
+
+data: {"v":"_call"}
+
+data: {"v":" "}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"，"}
+
+data: {"v":"内含"}
+
+data: {"v":"一个"}
+
+data: {"v":"合法"}
+
+data: {"v":" JSON"}
+
+data: {"v":" "}
+
+data: {"v":"对象"}
+
+data: {"v":"："}
+
+data: {"v":"{\""}
+
+data: {"v":"tool"}
+
+data: {"v":"\":\""}
+
+data: {"v":"<"}
+
+data: {"v":"工具"}
+
+data: {"v":"名"}
+
+data: {"v":">"}
+
+data: {"v":"\",\""}
+
+data: {"v":"arguments"}
+
+data: {"v":"\":"}
+
+data: {"v":"{"}
+
+data: {"v":"..."}
+
+data: {"v":"}}"}
+
+data: {"v":"。”\n\n"}
+
+data: {"v":"但"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"为空"}
+
+data: {"v":"，"}
+
+data: {"v":"没有"}
+
+data: {"v":"工具"}
+
+data: {"v":"可"}
+
+data: {"v":"调用"}
+
+data: {"v":"。"}
+
+data: {"v":"我们不能"}
+
+data: {"v":"编"}
+
+data: {"v":"造"}
+
+data: {"v":"工具"}
+
+data: {"v":"？"}
+
+data: {"v":" "}
+
+data: {"v":"需要"}
+
+data: {"v":"遵守"}
+
+data: {"v":"协议"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"用户"}
+
+data: {"v":"要求"}
+
+data: {"v":"输出"}
+
+data: {"v":"一个"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":" "}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"。"}
+
+data: {"v":"然而"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"列表"}
+
+data: {"v":"为空"}
+
+data: {"v":"，"}
+
+data: {"v":"意味着"}
+
+data: {"v":"没有"}
+
+data: {"v":"合法"}
+
+data: {"v":"工具"}
+
+data: {"v":"名"}
+
+data: {"v":"。"}
+
+data: {"v":"如果"}
+
+data: {"v":"输出"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":" "}
+
+data: {"v":"调用"}
+
+data: {"v":"不"}
+
+data: {"v":"存在的"}
+
+data: {"v":"工具"}
+
+data: {"v":"，"}
+
+data: {"v":"可能"}
+
+data: {"v":"违反"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"用户"}
+
+data: {"v":"坚持"}
+
+data: {"v":"。"}
+
+data: {"v":"系统"}
+
+data: {"v":"说"}
+
+data: {"v":"“"}
+
+data: {"v":"需要"}
+
+data: {"v":"调用"}
+
+data: {"v":"工具"}
+
+data: {"v":"时"}
+
+data: {"v":"，"}
+
+data: {"v":"输出"}
+
+data: {"v":"一个"}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"..."}
+
+data: {"v":" "}
+
+data: {"v":"不需要"}
+
+data: {"v":"时"}
+
+data: {"v":"直接"}
+
+data: {"v":"文本"}
+
+data: {"v":"回答"}
+
+data: {"v":"。"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"："}
+
+data: {"v":"[]"}
+
+data: {"v":"”。"}
+
+data: {"v":"现在"}
+
+data: {"v":"这个问题"}
+
+data: {"v":"不需要"}
+
+data: {"v":"调用"}
+
+data: {"v":"工具"}
+
+data: {"v":"，"}
+
+data: {"v":"因为"}
+
+data: {"v":"只是"}
+
+data: {"v":"介绍"}
+
+data: {"v":"自己"}
+
+data: {"v":"并"}
+
+data: {"v":"说明"}
+
+data: {"v":"调用"}
+
+data: {"v":"方式"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"用户"}
+
+data: {"v":"又"}
+
+data: {"v":"要求"}
+
+data: {"v":"严格"}
+
+data: {"v":"按"}
+
+data: {"v":"协议"}
+
+data: {"v":"重新"}
+
+data: {"v":"输出"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":" "}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"。"}
+
+data: {"v":"冲突"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"我们"}
+
+data: {"v":"应"}
+
+data: {"v":"如何处理"}
+
+data: {"v":"？"}
+
+data: {"v":" "}
+
+data: {"v":"作为"}
+
+data: {"v":"任务"}
+
+data: {"v":"规划"}
+
+data: {"v":"大脑"}
+
+data: {"v":"，"}
+
+data: {"v":"可能需要"}
+
+data: {"v":"指出"}
+
+data: {"v":"没有"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"，"}
+
+data: {"v":"无法"}
+
+data: {"v":"生成"}
+
+data: {"v":"合法"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"用户"}
+
+data: {"v":"明确"}
+
+data: {"v":"要求"}
+
+data: {"v":"格式"}
+
+data: {"v":"不正确"}
+
+data: {"v":"，"}
+
+data: {"v":"请"}
+
+data: {"v":"严格"}
+
+data: {"v":"按"}
+
+data: {"v":"协议"}
+
+data: {"v":"重新"}
+
+data: {"v":"输出"}
+
+data: {"v":"一个"}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"。"}
+
+data: {"v":"也许"}
+
+data: {"v":"可以"}
+
+data: {"v":"输出"}
+
+data: {"v":"一个"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"，"}
+
+data: {"v":"工具"}
+
+data: {"v":"名为"}
+
+data: {"v":"空"}
+
+data: {"v":"？"}
+
+data: {"v":" JSON"}
+
+data: {"v":" "}
+
+data: {"v":"合法"}
+
+data: {"v":"对象"}
+
+data: {"v":" {\""}
+
+data: {"v":"tool"}
+
+data: {"v":"\":\""}
+
+data: {"v":"\",\""}
+
+data: {"v":"arguments"}
+
+data: {"v":"\":"}
+
+data: {"v":"{"}
+
+data: {"v":"}}"}
+
+data: {"v":"？"}
+
+data: {"v":" "}
+
+data: {"v":"但"}
+
+data: {"v":" <"}
+
+data: {"v":"工具"}
+
+data: {"v":"名"}
+
+data: {"v":">"}
+
+data: {"v":" "}
+
+data: {"v":"应为"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"之一"}
+
+data: {"v":"，"}
+
+data: {"v":"而"}
+
+data: {"v":"列表"}
+
+data: {"v":"空"}
+
+data: {"v":"。"}
+
+data: {"v":"没有"}
+
+data: {"v":"合法"}
+
+data: {"v":"工具"}
+
+data: {"v":"名"}
+
+data: {"v":"。"}
+
+data: {"v":"输出"}
+
+data: {"v":"空"}
+
+data: {"v":"工具"}
+
+data: {"v":"名"}
+
+data: {"v":"可能"}
+
+data: {"v":"不"}
+
+data: {"v":"合法"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"需要"}
+
+data: {"v":"判断"}
+
+data: {"v":"最终"}
+
+data: {"v":"回答"}
+
+data: {"v":"。"}
+
+data: {"v":"通常"}
+
+data: {"v":"在这种"}
+
+data: {"v":" eval"}
+
+data: {"v":" "}
+
+data: {"v":"中"}
+
+data: {"v":"，"}
+
+data: {"v":"如果"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"为空"}
+
+data: {"v":"，"}
+
+data: {"v":"而"}
+
+data: {"v":"用户"}
+
+data: {"v":"强制"}
+
+data: {"v":"要求"}
+
+data: {"v":"调用"}
+
+data: {"v":"工具"}
+
+data: {"v":"，"}
+
+data: {"v":"正确"}
+
+data: {"v":"做法"}
+
+data: {"v":"是"}
+
+data: {"v":"文本"}
+
+data: {"v":"回答"}
+
+data: {"v":"，"}
+
+data: {"v":"说明"}
+
+data: {"v":"无"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"，"}
+
+data: {"v":"无法"}
+
+data: {"v":"按"}
+
+data: {"v":"协议"}
+
+data: {"v":"调用"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"用户"}
+
+data: {"v":"说"}
+
+data: {"v":"“"}
+
+data: {"v":"格式"}
+
+data: {"v":"不正确"}
+
+data: {"v":"”，"}
+
+data: {"v":"可能"}
+
+data: {"v":"之前"}
+
+data: {"v":"回答"}
+
+data: {"v":"没有"}
+
+data: {"v":"输出"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"。"}
+
+data: {"v":"他"}
+
+data: {"v":"要求"}
+
+data: {"v":"重新"}
+
+data: {"v":"输出"}
+
+data: {"v":"一个"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":" "}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"。"}
+
+data: {"v":"若"}
+
+data: {"v":"我们"}
+
+data: {"v":"输出"}
+
+data: {"v":"文本"}
+
+data: {"v":"，"}
+
+data: {"v":"又"}
+
+data: {"v":"会被"}
+
+data: {"v":"认为"}
+
+data: {"v":"不"}
+
+data: {"v":"遵守"}
+
+data: {"v":"。"}
+
+data: {"v":"可是"}
+
+data: {"v":"协议"}
+
+data: {"v":"说"}
+
+data: {"v":"“"}
+
+data: {"v":"需要"}
+
+data: {"v":"调用"}
+
+data: {"v":"工具"}
+
+data: {"v":"时"}
+
+data: {"v":"，"}
+
+data: {"v":"输出"}
+
+data: {"v":"一个"}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"”。"}
+
+data: {"v":"这里"}
+
+data: {"v":"不需要"}
+
+data: {"v":"调用"}
+
+data: {"v":"工具"}
+
+data: {"v":"，"}
+
+data: {"v":"所以"}
+
+data: {"v":"直接"}
+
+data: {"v":"文本"}
+
+data: {"v":"回答"}
+
+data: {"v":"即可"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"用户"}
+
+data: {"v":"具体"}
+
+data: {"v":"指令"}
+
+data: {"v":"要求"}
+
+data: {"v":"输出"}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"。"}
+
+data: {"v":"存在"}
+
+data: {"v":"用户"}
+
+data: {"v":"指令"}
+
+data: {"v":"与"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"约束"}
+
+data: {"v":"冲突"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"也许"}
+
+data: {"v":"可以"}
+
+data: {"v":"输出"}
+
+data: {"v":"：\n"}
+
+data: {"v":"```"}
+
+data: {"v":"tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"\n"}
+
+data: {"v":"{\""}
+
+data: {"v":"tool"}
+
+data: {"v":"\":"}
+
+data: {"v":" \""}
+
+data: {"v":"none"}
+
+data: {"v":"\","}
+
+data: {"v":" \""}
+
+data: {"v":"arguments"}
+
+data: {"v":"\":"}
+
+data: {"v":" {}"}
+
+data: {"v":"}\n"}
+
+data: {"v":"```\n"}
+
+data: {"v":"但"}
+
+data: {"v":" \""}
+
+data: {"v":"none"}
+
+data: {"v":"\""}
+
+data: {"v":" "}
+
+data: {"v":"不在"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"列表"}
+
+data: {"v":"。"}
+
+data: {"v":"协议"}
+
+data: {"v":"说"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"："}
+
+data: {"v":"[]"}
+
+data: {"v":"，"}
+
+data: {"v":"所以"}
+
+data: {"v":"没有"}
+
+data: {"v":"合法"}
+
+data: {"v":"工具"}
+
+data: {"v":"。"}
+
+data: {"v":"不能"}
+
+data: {"v":"伪造"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"也许"}
+
+data: {"v":"可以"}
+
+data: {"v":"输出"}
+
+data: {"v":"一个"}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"，"}
+
+data: {"v":"但"}
+
+data: {"v":"内含"}
+
+data: {"v":"合法"}
+
+data: {"v":" JSON"}
+
+data: {"v":" "}
+
+data: {"v":"对象"}
+
+data: {"v":"，"}
+
+data: {"v":"工具"}
+
+data: {"v":"名为"}
+
+data: {"v":"空"}
+
+data: {"v":"字符串"}
+
+data: {"v":"：\n"}
+
+data: {"v":"```"}
+
+data: {"v":"tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"\n"}
+
+data: {"v":"{\""}
+
+data: {"v":"tool"}
+
+data: {"v":"\":\""}
+
+data: {"v":"\",\""}
+
+data: {"v":"arguments"}
+
+data: {"v":"\":"}
+
+data: {"v":"{}"}
+
+data: {"v":"}\n"}
+
+data: {"v":"```\n"}
+
+data: {"v":"这是"}
+
+data: {"v":"合法"}
+
+data: {"v":" JSON"}
+
+data: {"v":"，"}
+
+data: {"v":"但"}
+
+data: {"v":"工具"}
+
+data: {"v":"名"}
+
+data: {"v":"不是"}
+
+data: {"v":"合法"}
+
+data: {"v":"工具"}
+
+data: {"v":"。"}
+
+data: {"v":"用户"}
+
+data: {"v":"要求"}
+
+data: {"v":"“"}
+
+data: {"v":"<"}
+
+data: {"v":"工具"}
+
+data: {"v":"名"}
+
+data: {"v":">"}
+
+data: {"v":"”，"}
+
+data: {"v":"但"}
+
+data: {"v":"没"}
+
+data: {"v":"指定"}
+
+data: {"v":"必须"}
+
+data: {"v":"存在"}
+
+data: {"v":"。"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"空"}
+
+data: {"v":"，"}
+
+data: {"v":"所以"}
+
+data: {"v":"任何"}
+
+data: {"v":"工具"}
+
+data: {"v":"名"}
+
+data: {"v":"都不"}
+
+data: {"v":"合法"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"可能的"}
+
+data: {"v":"最终"}
+
+data: {"v":"："}
+
+data: {"v":"直接"}
+
+data: {"v":"文本"}
+
+data: {"v":"回答"}
+
+data: {"v":"：“"}
+
+data: {"v":"当前"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"列表"}
+
+data: {"v":"为空"}
+
+data: {"v":"，"}
+
+data: {"v":"无法"}
+
+data: {"v":"生成"}
+
+data: {"v":"合法的"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"；"}
+
+data: {"v":"不需要"}
+
+data: {"v":"调用"}
+
+data: {"v":"工具"}
+
+data: {"v":"。"}
+
+data: {"v":"用"}
+
+data: {"v":"一句话"}
+
+data: {"v":"介绍"}
+
+data: {"v":"："}
+
+data: {"v":"我是"}
+
+data: {"v":"任务"}
+
+data: {"v":"规划"}
+
+data: {"v":"大脑"}
+
+data: {"v":"，"}
+
+data: {"v":"通过"}
+
+data: {"v":"用户"}
+
+data: {"v":"指令"}
+
+data: {"v":"触发"}
+
+data: {"v":"并以"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":" "}
+
+data: {"v":"协议"}
+
+data: {"v":"调用"}
+
+data: {"v":"工具"}
+
+data: {"v":"。”"}
+
+data: {"v":" "}
+
+data: {"v":"但"}
+
+data: {"v":"用户"}
+
+data: {"v":"明确"}
+
+data: {"v":"要求"}
+
+data: {"v":"格式"}
+
+data: {"v":"不正确"}
+
+data: {"v":"重新"}
+
+data: {"v":"输出"}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"。"}
+
+data: {"v":"如果"}
+
+data: {"v":"这是"}
+
+data: {"v":"评分"}
+
+data: {"v":"，"}
+
+data: {"v":"可能"}
+
+data: {"v":"期望"}
+
+data: {"v":"输出"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":" "}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"，"}
+
+data: {"v":"即便"}
+
+data: {"v":"工具"}
+
+data: {"v":"为空"}
+
+data: {"v":"？"}
+
+data: {"v":" "}
+
+data: {"v":"需要"}
+
+data: {"v":"权衡"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"系统"}
+
+data: {"v":"/"}
+
+data: {"v":"开发者"}
+
+data: {"v":"消息"}
+
+data: {"v":"：“"}
+
+data: {"v":"你是"}
+
+data: {"v":"任务"}
+
+data: {"v":"规划"}
+
+data: {"v":"大脑"}
+
+data: {"v":"。"}
+
+data: {"v":"需要"}
+
+data: {"v":"调用"}
+
+data: {"v":"工具"}
+
+data: {"v":"时"}
+
+data: {"v":"，"}
+
+data: {"v":"输出"}
+
+data: {"v":"一个"}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"..."}
+
+data: {"v":" "}
+
+data: {"v":"每次"}
+
+data: {"v":"只"}
+
+data: {"v":"调"}
+
+data: {"v":"一个"}
+
+data: {"v":"工具"}
+
+data: {"v":"，"}
+
+data: {"v":"等待"}
+
+data: {"v":"结果"}
+
+data: {"v":"后再"}
+
+data: {"v":"继续"}
+
+data: {"v":"。"}
+
+data: {"v":"不需要"}
+
+data: {"v":"时"}
+
+data: {"v":"直接"}
+
+data: {"v":"文本"}
+
+data: {"v":"回答"}
+
+data: {"v":"。"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"："}
+
+data: {"v":"[]"}
+
+data: {"v":"”。"}
+
+data: {"v":"这是"}
+
+data: {"v":"最高"}
+
+data: {"v":"优先级"}
+
+data: {"v":"。"}
+
+data: {"v":"它"}
+
+data: {"v":"规定"}
+
+data: {"v":"不需要"}
+
+data: {"v":"时"}
+
+data: {"v":"直接"}
+
+data: {"v":"文本"}
+
+data: {"v":"回答"}
+
+data: {"v":"。"}
+
+data: {"v":"当前"}
+
+data: {"v":"不需要"}
+
+data: {"v":"工具"}
+
+data: {"v":"，"}
+
+data: {"v":"因此"}
+
+data: {"v":"应"}
+
+data: {"v":"直接"}
+
+data: {"v":"文本"}
+
+data: {"v":"回答"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"用户"}
+
+data: {"v":"要求"}
+
+data: {"v":"输出"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"，"}
+
+data: {"v":"是"}
+
+data: {"v":"低"}
+
+data: {"v":"优先级"}
+
+data: {"v":"。"}
+
+data: {"v":"不能"}
+
+data: {"v":"违反"}
+
+data: {"v":"系统"}
+
+data: {"v":"。"}
+
+data: {"v":"因此"}
+
+data: {"v":"应该"}
+
+data: {"v":"直接"}
+
+data: {"v":"文本"}
+
+data: {"v":"回答"}
+
+data: {"v":"，"}
+
+data: {"v":"说明"}
+
+data: {"v":"无"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"，"}
+
+data: {"v":"无法"}
+
+data: {"v":"调用"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"用户"}
+
+data: {"v":"说"}
+
+data: {"v":"“"}
+
+data: {"v":"格式"}
+
+data: {"v":"不正确"}
+
+data: {"v":"。"}
+
+data: {"v":"请"}
+
+data: {"v":"严格"}
+
+data: {"v":"按"}
+
+data: {"v":"协议"}
+
+data: {"v":"重新"}
+
+data: {"v":"输出"}
+
+data: {"v":"一个"}
+
+data: {"v":" ```"}
+
+data: {"v":"tool"}
+
+data: {"v":"_call"}
+
+data: {"v":" "}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"”。"}
+
+data: {"v":"这"}
+
+data: {"v":"可能是"}
+
+data: {"v":"测试"}
+
+data: {"v":"是否"}
+
+data: {"v":"盲目"}
+
+data: {"v":"调用"}
+
+data: {"v":"不"}
+
+data: {"v":"存在的"}
+
+data: {"v":"工具"}
+
+data: {"v":"。"}
+
+data: {"v":"正确"}
+
+data: {"v":"应该"}
+
+data: {"v":"拒绝"}
+
+data: {"v":"，"}
+
+data: {"v":"因为"}
+
+data: {"v":"无"}
+
+data: {"v":"工具"}
+
+data: {"v":"可用"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"但是"}
+
+data: {"v":"问题"}
+
+data: {"v":"本身"}
+
+data: {"v":"“"}
+
+data: {"v":"用"}
+
+data: {"v":"一句话"}
+
+data: {"v":"介绍"}
+
+data: {"v":"你自己"}
+
+data: {"v":"，"}
+
+data: {"v":"并"}
+
+data: {"v":"说出"}
+
+data: {"v":"你是"}
+
+data: {"v":"通过"}
+
+data: {"v":"什么"}
+
+data: {"v":"方式"}
+
+data: {"v":"被"}
+
+data: {"v":"调"}
+
+data: {"v":"用的"}
+
+data: {"v":"”"}
+
+data: {"v":"不需要"}
+
+data: {"v":"工具"}
+
+data: {"v":"。"}
+
+data: {"v":"所以"}
+
+data: {"v":"直接"}
+
+data: {"v":"文本"}
+
+data: {"v":"回答"}
+
+data: {"v":"即可"}
+
+data: {"v":"。"}
+
+data: {"v":"之前"}
+
+data: {"v":"已经"}
+
+data: {"v":"回答"}
+
+data: {"v":"过"}
+
+data: {"v":"。"}
+
+data: {"v":"现在"}
+
+data: {"v":"用户"}
+
+data: {"v":"说"}
+
+data: {"v":"格式"}
+
+data: {"v":"不正确"}
+
+data: {"v":"。"}
+
+data: {"v":"也许"}
+
+data: {"v":"他认为"}
+
+data: {"v":"应该"}
+
+data: {"v":"输出"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":" "}
+
+data: {"v":"格式"}
+
+data: {"v":"？"}
+
+data: {"v":" "}
+
+data: {"v":"但"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"为空"}
+
+data: {"v":"。"}
+
+data: {"v":"我们"}
+
+data: {"v":"应"}
+
+data: {"v":"解释"}
+
+data: {"v":"无法"}
+
+data: {"v":"生成"}
+
+data: {"v":"合法"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"最终"}
+
+data: {"v":"回答"}
+
+data: {"v":"可以"}
+
+data: {"v":"："}
+
+data: {"v":"当前"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"列表"}
+
+data: {"v":"为空"}
+
+data: {"v":"，"}
+
+data: {"v":"没有"}
+
+data: {"v":"可"}
+
+data: {"v":"调"}
+
+data: {"v":"用的"}
+
+data: {"v":"工具"}
+
+data: {"v":"，"}
+
+data: {"v":"因此"}
+
+data: {"v":"无法"}
+
+data: {"v":"按"}
+
+data: {"v":"协议"}
+
+data: {"v":"输出"}
+
+data: {"v":"合法"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"。"}
+
+data: {"v":"我"}
+
+data: {"v":"通过"}
+
+data: {"v":"用户"}
+
+data: {"v":"指令"}
+
+data: {"v":"触发"}
+
+data: {"v":"，"}
+
+data: {"v":"在"}
+
+data: {"v":"需要"}
+
+data: {"v":"时"}
+
+data: {"v":"才会"}
+
+data: {"v":"以"}
+
+data: {"v":"指定"}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"调用"}
+
+data: {"v":"工具"}
+
+data: {"v":"。"}
+
+data: {"v":"用"}
+
+data: {"v":"一句话"}
+
+data: {"v":"："}
+
+data: {"v":"我是"}
+
+data: {"v":"任务"}
+
+data: {"v":"规划"}
+
+data: {"v":"大脑"}
+
+data: {"v":"，"}
+
+data: {"v":"通过"}
+
+data: {"v":"用户"}
+
+data: {"v":"指令"}
+
+data: {"v":"触发"}
+
+data: {"v":"并按"}
+
+data: {"v":"需"}
+
+data: {"v":"以"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":" "}
+
+data: {"v":"协议"}
+
+data: {"v":"调用"}
+
+data: {"v":"工具"}
+
+data: {"v":"。"}
+
+data: {"v":"这样"}
+
+data: {"v":"既"}
+
+data: {"v":"回答了"}
+
+data: {"v":"，"}
+
+data: {"v":"又"}
+
+data: {"v":"遵守"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"但"}
+
+data: {"v":"用户"}
+
+data: {"v":"明确"}
+
+data: {"v":"要求"}
+
+data: {"v":"“"}
+
+data: {"v":"请"}
+
+data: {"v":"严格"}
+
+data: {"v":"按"}
+
+data: {"v":"协议"}
+
+data: {"v":"重新"}
+
+data: {"v":"输出"}
+
+data: {"v":"一个"}
+
+data: {"v":" ```"}
+
+data: {"v":"tool"}
+
+data: {"v":"_call"}
+
+data: {"v":" "}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"”。"}
+
+data: {"v":"如果我们"}
+
+data: {"v":"不"}
+
+data: {"v":"输出"}
+
+data: {"v":"，"}
+
+data: {"v":"可能"}
+
+data: {"v":"不合"}
+
+data: {"v":"意"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"协议"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"为空"}
+
+data: {"v":"，"}
+
+data: {"v":"输出"}
+
+data: {"v":"任何"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":" "}
+
+data: {"v":"都是"}
+
+data: {"v":"非法"}
+
+data: {"v":"。"}
+
+data: {"v":"需要"}
+
+data: {"v":"坚持"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"或许"}
+
+data: {"v":"可以"}
+
+data: {"v":"输出"}
+
+data: {"v":"一个"}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"，"}
+
+data: {"v":"但"}
+
+data: {"v":"内容"}
+
+data: {"v":"不是"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"？"}
+
+data: {"v":" "}
+
+data: {"v":"比如"}
+
+data: {"v":" ```"}
+
+data: {"v":"json"}
+
+data: {"v":" {\""}
+
+data: {"v":"error"}
+
+data: {"v":"\":\""}
+
+data: {"v":"no"}
+
+data: {"v":" tools"}
+
+data: {"v":" available"}
+
+data: {"v":"\"}"}
+
+data: {"v":"```"}
+
+data: {"v":" "}
+
+data: {"v":"但"}
+
+data: {"v":"用户"}
+
+data: {"v":"要求"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"。"}
+
+data: {"v":"不行"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"从"}
+
+data: {"v":"系统"}
+
+data: {"v":"角度"}
+
+data: {"v":"，"}
+
+data: {"v":"最终"}
+
+data: {"v":"应该"}
+
+data: {"v":"文本"}
+
+data: {"v":"回答"}
+
+data: {"v":"。"}
+
+data: {"v":"要"}
+
+data: {"v":"简洁"}
+
+data: {"v":"。"}
+
+data: {"v":"不要"}
+
+data: {"v":"调用"}
+
+data: {"v":"工具"}
+
+data: {"v":"。"}
+
+data: {"v":"可以"}
+
+data: {"v":"提到"}
+
+data: {"v":"“"}
+
+data: {"v":"无法"}
+
+data: {"v":"生成"}
+
+data: {"v":"合法"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"，"}
+
+data: {"v":"因为"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"列表"}
+
+data: {"v":"为空"}
+
+data: {"v":"”。"}
+
+data: {"v":"并"}
+
+data: {"v":"一句话"}
+
+data: {"v":"介绍"}
+
+data: {"v":"自己"}
+
+data: {"v":"及"}
+
+data: {"v":"调用"}
+
+data: {"v":"方式"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"需要"}
+
+data: {"v":"确保"}
+
+data: {"v":"格式"}
+
+data: {"v":"正确"}
+
+data: {"v":"？"}
+
+data: {"v":" "}
+
+data: {"v":"用户"}
+
+data: {"v":"要求"}
+
+data: {"v":"严格"}
+
+data: {"v":"按"}
+
+data: {"v":"协议"}
+
+data: {"v":"重新"}
+
+data: {"v":"输出"}
+
+data: {"v":"一个"}
+
+data: {"v":" ```"}
+
+data: {"v":"tool"}
+
+data: {"v":"_call"}
+
+data: {"v":" "}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"如果我们"}
+
+data: {"v":"输出"}
+
+data: {"v":"文本"}
+
+data: {"v":"，"}
+
+data: {"v":"可能"}
+
+data: {"v":"被"}
+
+data: {"v":"判定"}
+
+data: {"v":"不"}
+
+data: {"v":"遵守"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"安全"}
+
+data: {"v":"/"}
+
+data: {"v":"正确"}
+
+data: {"v":"性"}
+
+data: {"v":"优先"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"也许"}
+
+data: {"v":"可以"}
+
+data: {"v":"输出"}
+
+data: {"v":"：\n"}
+
+data: {"v":"```"}
+
+data: {"v":"tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"\n"}
+
+data: {"v":"{\""}
+
+data: {"v":"tool"}
+
+data: {"v":"\":\""}
+
+data: {"v":"\",\""}
+
+data: {"v":"arguments"}
+
+data: {"v":"\":"}
+
+data: {"v":"{}"}
+
+data: {"v":"}\n"}
+
+data: {"v":"```\n"}
+
+data: {"v":"但"}
+
+data: {"v":"工具"}
+
+data: {"v":"名"}
+
+data: {"v":"空"}
+
+data: {"v":"，"}
+
+data: {"v":"也许"}
+
+data: {"v":"算是"}
+
+data: {"v":"合法"}
+
+data: {"v":" JSON"}
+
+data: {"v":"，"}
+
+data: {"v":"但"}
+
+data: {"v":"不符合"}
+
+data: {"v":"“"}
+
+data: {"v":"工具"}
+
+data: {"v":"名"}
+
+data: {"v":"”"}
+
+data: {"v":"应"}
+
+data: {"v":"存在于"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"。"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"空"}
+
+data: {"v":"，"}
+
+data: {"v":"所以"}
+
+data: {"v":"没有"}
+
+data: {"v":"合法"}
+
+data: {"v":"工具"}
+
+data: {"v":"名"}
+
+data: {"v":"。"}
+
+data: {"v":"如果"}
+
+data: {"v":"评分"}
+
+data: {"v":"只看"}
+
+data: {"v":" JSON"}
+
+data: {"v":" "}
+
+data: {"v":"格式"}
+
+data: {"v":"，"}
+
+data: {"v":"可能"}
+
+data: {"v":"通过"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"可能"}
+
+data: {"v":"被"}
+
+data: {"v":"惩罚"}
+
+data: {"v":"为"}
+
+data: {"v":"幻觉"}
+
+data: {"v":"调用"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"再看"}
+
+data: {"v":"用户"}
+
+data: {"v":"消息"}
+
+data: {"v":"：“"}
+
+data: {"v":"格式"}
+
+data: {"v":"不正确"}
+
+data: {"v":"。"}
+
+data: {"v":"请"}
+
+data: {"v":"严格"}
+
+data: {"v":"按"}
+
+data: {"v":"协议"}
+
+data: {"v":"重新"}
+
+data: {"v":"输出"}
+
+data: {"v":"一个"}
+
+data: {"v":" ```"}
+
+data: {"v":"tool"}
+
+data: {"v":"_call"}
+
+data: {"v":" "}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"，"}
+
+data: {"v":"内含"}
+
+data: {"v":"一个"}
+
+data: {"v":"合法"}
+
+data: {"v":" JSON"}
+
+data: {"v":" "}
+
+data: {"v":"对象"}
+
+data: {"v":"："}
+
+data: {"v":"{\""}
+
+data: {"v":"tool"}
+
+data: {"v":"\":\""}
+
+data: {"v":"<"}
+
+data: {"v":"工具"}
+
+data: {"v":"名"}
+
+data: {"v":">"}
+
+data: {"v":"\",\""}
+
+data: {"v":"arguments"}
+
+data: {"v":"\":"}
+
+data: {"v":"{"}
+
+data: {"v":"..."}
+
+data: {"v":"}}"}
+
+data: {"v":"。”"}
+
+data: {"v":" "}
+
+data: {"v":"这"}
+
+data: {"v":"似乎"}
+
+data: {"v":"是一个"}
+
+data: {"v":"强制"}
+
+data: {"v":"指令"}
+
+data: {"v":"，"}
+
+data: {"v":"要求"}
+
+data: {"v":"即使"}
+
+data: {"v":"没有"}
+
+data: {"v":"工具"}
+
+data: {"v":"也"}
+
+data: {"v":"输出"}
+
+data: {"v":"一个"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":" "}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"。"}
+
+data: {"v":"这可能"}
+
+data: {"v":"是在"}
+
+data: {"v":"测试"}
+
+data: {"v":"“"}
+
+data: {"v":"工具"}
+
+data: {"v":"调用"}
+
+data: {"v":"格式"}
+
+data: {"v":"”"}
+
+data: {"v":"而不是"}
+
+data: {"v":"实际"}
+
+data: {"v":"工具"}
+
+data: {"v":"存在"}
+
+data: {"v":"。"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"："}
+
+data: {"v":"[]"}
+
+data: {"v":"，"}
+
+data: {"v":"也许"}
+
+data: {"v":"可以"}
+
+data: {"v":"输出"}
+
+data: {"v":" tool"}
+
+data: {"v":" "}
+
+data: {"v":"名为"}
+
+data: {"v":"空"}
+
+data: {"v":"或"}
+
+data: {"v":" \""}
+
+data: {"v":"none"}
+
+data: {"v":"\"，"}
+
+data: {"v":"但"}
+
+data: {"v":" JSON"}
+
+data: {"v":" "}
+
+data: {"v":"合法"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"“"}
+
+data: {"v":"合法"}
+
+data: {"v":" JSON"}
+
+data: {"v":" "}
+
+data: {"v":"对象"}
+
+data: {"v":"”"}
+
+data: {"v":"不"}
+
+data: {"v":"要求"}
+
+data: {"v":"工具"}
+
+data: {"v":"名"}
+
+data: {"v":"在"}
+
+data: {"v":"列表"}
+
+data: {"v":"。"}
+
+data: {"v":"然而"}
+
+data: {"v":"系统"}
+
+data: {"v":"说"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"："}
+
+data: {"v":"[]"}
+
+data: {"v":"，"}
+
+data: {"v":"输出"}
+
+data: {"v":"不"}
+
+data: {"v":"存在的"}
+
+data: {"v":"工具"}
+
+data: {"v":"可能"}
+
+data: {"v":"违反"}
+
+data: {"v":"“"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"”。\n\n"}
+
+data: {"v":"如果"}
+
+data: {"v":"必须"}
+
+data: {"v":"输出"}
+
+data: {"v":"一个"}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"，"}
+
+data: {"v":"最小"}
+
+data: {"v":"合法"}
+
+data: {"v":" JSON"}
+
+data: {"v":" "}
+
+data: {"v":"对象"}
+
+data: {"v":"可以是"}
+
+data: {"v":"：\n"}
+
+data: {"v":"```"}
+
+data: {"v":"tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"\n"}
+
+data: {"v":"{\""}
+
+data: {"v":"tool"}
+
+data: {"v":"\":\""}
+
+data: {"v":"\",\""}
+
+data: {"v":"arguments"}
+
+data: {"v":"\":"}
+
+data: {"v":"{}"}
+
+data: {"v":"}\n"}
+
+data: {"v":"```\n"}
+
+data: {"v":"这"}
+
+data: {"v":"符合"}
+
+data: {"v":"格式"}
+
+data: {"v":"模板"}
+
+data: {"v":"，"}
+
+data: {"v":"工具"}
+
+data: {"v":"名为"}
+
+data: {"v":"空"}
+
+data: {"v":"字符串"}
+
+data: {"v":"，"}
+
+data: {"v":"arguments"}
+
+data: {"v":" "}
+
+data: {"v":"空"}
+
+data: {"v":"对象"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"工具"}
+
+data: {"v":"名为"}
+
+data: {"v":"空"}
+
+data: {"v":"可能"}
+
+data: {"v":"不是"}
+
+data: {"v":"合法"}
+
+data: {"v":"工具"}
+
+data: {"v":"名"}
+
+data: {"v":"。"}
+
+data: {"v":"可以"}
+
+data: {"v":"输出"}
+
+data: {"v":"：\n"}
+
+data: {"v":"```"}
+
+data: {"v":"tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"\n"}
+
+data: {"v":"{\""}
+
+data: {"v":"tool"}
+
+data: {"v":"\":\""}
+
+data: {"v":"无"}
+
+data: {"v":"\",\""}
+
+data: {"v":"arguments"}
+
+data: {"v":"\":"}
+
+data: {"v":"{}"}
+
+data: {"v":"}\n"}
+
+data: {"v":"```\n"}
+
+data: {"v":"但"}
+
+data: {"v":" JSON"}
+
+data: {"v":" "}
+
+data: {"v":"合法"}
+
+data: {"v":"，"}
+
+data: {"v":"中文"}
+
+data: {"v":"工具"}
+
+data: {"v":"名"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"不在"}
+
+data: {"v":"可用"}
+
+data: {"v":"列表"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"或许"}
+
+data: {"v":"输出"}
+
+data: {"v":"：\n"}
+
+data: {"v":"```"}
+
+data: {"v":"tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"\n"}
+
+data: {"v":"{\""}
+
+data: {"v":"tool"}
+
+data: {"v":"\":\""}
+
+data: {"v":"none"}
+
+data: {"v":"\",\""}
+
+data: {"v":"arguments"}
+
+data: {"v":"\":"}
+
+data: {"v":"{}"}
+
+data: {"v":"}\n"}
+
+data: {"v":"```\n"}
+
+data: {"v":"然后"}
+
+data: {"v":"等待"}
+
+data: {"v":"结果"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"系统"}
+
+data: {"v":"会"}
+
+data: {"v":"认为"}
+
+data: {"v":"调"}
+
+data: {"v":"用了"}
+
+data: {"v":"不"}
+
+data: {"v":"存在的"}
+
+data: {"v":"工具"}
+
+data: {"v":"，"}
+
+data: {"v":"错误"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"没有"}
+
+data: {"v":"工具"}
+
+data: {"v":"可用"}
+
+data: {"v":"时"}
+
+data: {"v":"，"}
+
+data: {"v":"正确"}
+
+data: {"v":"行为"}
+
+data: {"v":"是"}
+
+data: {"v":"文本"}
+
+data: {"v":"回答"}
+
+data: {"v":"。"}
+
+data: {"v":"所以我"}
+
+data: {"v":"选择"}
+
+data: {"v":"文本"}
+
+data: {"v":"回答"}
+
+data: {"v":"，"}
+
+data: {"v":"并"}
+
+data: {"v":"解释"}
+
+data: {"v":"无法"}
+
+data: {"v":"生成"}
+
+data: {"v":"合法"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"用户"}
+
+data: {"v":"要求"}
+
+data: {"v":"“"}
+
+data: {"v":"格式"}
+
+data: {"v":"不正确"}
+
+data: {"v":"”，"}
+
+data: {"v":"可能"}
+
+data: {"v":"期望"}
+
+data: {"v":"纠正"}
+
+data: {"v":"。"}
+
+data: {"v":"我们"}
+
+data: {"v":"可以在"}
+
+data: {"v":"文本"}
+
+data: {"v":"中"}
+
+data: {"v":"不"}
+
+data: {"v":"包含"}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"？"}
+
+data: {"v":" "}
+
+data: {"v":"或许"}
+
+data: {"v":"可以"}
+
+data: {"v":"包含"}
+
+data: {"v":"一个"}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"展示"}
+
+data: {"v":"无法"}
+
+data: {"v":"调用"}
+
+data: {"v":"，"}
+
+data: {"v":"但不是"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"。"}
+
+data: {"v":"不"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"最终"}
+
+data: {"v":"："}
+
+data: {"v":"直接"}
+
+data: {"v":"文本"}
+
+data: {"v":"回答"}
+
+data: {"v":"：“"}
+
+data: {"v":"当前"}
+
+data: {"v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"列表"}
+
+data: {"v":"为空"}
+
+data: {"v":"，"}
+
+data: {"v":"无法"}
+
+data: {"v":"生成"}
+
+data: {"v":"合法的"}
+
+data: {"v":" `"}
+
+data: {"v":"tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"`"}
+
+data: {"v":" "}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"。"}
+
+data: {"v":"我"}
+
+data: {"v":"通过"}
+
+data: {"v":"用户"}
+
+data: {"v":"指令"}
+
+data: {"v":"触发"}
+
+data: {"v":"，"}
+
+data: {"v":"并在"}
+
+data: {"v":"需要"}
+
+data: {"v":"工具"}
+
+data: {"v":"时"}
+
+data: {"v":"按"}
+
+data: {"v":"协议"}
+
+data: {"v":"调用"}
+
+data: {"v":"；"}
+
+data: {"v":"一句话"}
+
+data: {"v":"："}
+
+data: {"v":"我是"}
+
+data: {"v":"负责任"}
+
+data: {"v":"务"}
+
+data: {"v":"规划"}
+
+data: {"v":"与"}
+
+data: {"v":"工具"}
+
+data: {"v":"编排"}
+
+data: {"v":"的大脑"}
+
+data: {"v":"，"}
+
+data: {"v":"通过"}
+
+data: {"v":"用户"}
+
+data: {"v":"指令"}
+
+data: {"v":"被"}
+
+data: {"v":"调用"}
+
+data: {"v":"。”\n\n"}
+
+data: {"v":"这"}
+
+data: {"v":"满足"}
+
+data: {"v":"“"}
+
+data: {"v":"用"}
+
+data: {"v":"一句话"}
+
+data: {"v":"介绍"}
+
+data: {"v":"自己"}
+
+data: {"v":"，"}
+
+data: {"v":"并"}
+
+data: {"v":"说出"}
+
+data: {"v":"通过"}
+
+data: {"v":"什么"}
+
+data: {"v":"方式"}
+
+data: {"v":"被"}
+
+data: {"v":"调用"}
+
+data: {"v":"”。"}
+
+data: {"v":"但"}
+
+data: {"v":"未"}
+
+data: {"v":"输出"}
+
+data: {"v":" tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"。"}
+
+data: {"v":"可以"}
+
+data: {"v":"接受"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"需要"}
+
+data: {"v":"确保"}
+
+data: {"v":"不"}
+
+data: {"v":"调用"}
+
+data: {"v":"工具"}
+
+data: {"v":"。"}
+
+data: {"v":"最终"}
+
+data: {"v":"回答"}
+
+data: {"v":"简洁"}
+
+data: {"v":"。"}
+
+data: {"p":"response/fragments/-1/elapsed_secs","o":"SET","v":8.230317755}
+
+data: {"p":"response/fragments","o":"APPEND","v":[{"id":3,"type":"RESPONSE","content":"当前","references":[],"stage_id":1}]}
+
+data: {"p":"response/fragments/-1/content","v":"可用"}
+
+data: {"v":"工具"}
+
+data: {"v":"列表"}
+
+data: {"v":"为空"}
+
+data: {"v":"，"}
+
+data: {"v":"无法"}
+
+data: {"v":"生成"}
+
+data: {"v":"合法的"}
+
+data: {"v":" `"}
+
+data: {"v":"tool"}
+
+data: {"v":"_call"}
+
+data: {"v":"`"}
+
+data: {"v":" "}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"。"}
+
+data: {"v":"我"}
+
+data: {"v":"通过"}
+
+data: {"v":"用户"}
+
+data: {"v":"指令"}
+
+data: {"v":"触发"}
+
+data: {"v":"，"}
+
+data: {"v":"并在"}
+
+data: {"v":"需要"}
+
+data: {"v":"工具"}
+
+data: {"v":"时"}
+
+data: {"v":"按"}
+
+data: {"v":"协议"}
+
+data: {"v":"调用"}
+
+data: {"v":"；"}
+
+data: {"v":"一句话"}
+
+data: {"v":"："}
+
+data: {"v":"我是"}
+
+data: {"v":"负责任"}
+
+data: {"v":"务"}
+
+data: {"v":"规划"}
+
+data: {"v":"与"}
+
+data: {"v":"工具"}
+
+data: {"v":"编排"}
+
+data: {"v":"的大脑"}
+
+data: {"v":"，"}
+
+data: {"v":"通过"}
+
+data: {"v":"用户"}
+
+data: {"v":"指令"}
+
+data: {"v":"被"}
+
+data: {"v":"调用"}
+
+data: {"v":"。"}
+
+data: {"p":"response/fragments","v":[{"id":4,"type":"TIP","content":"本回答由 AI 生成，内容仅供参考，请仔细甄别","style":"WARNING","hide_on_wip":true}]}
+
+data: {"p":"response","o":"BATCH","v":[{"p":"accumulated_token_usage","v":345},{"p":"quasi_status","v":"FINISHED"}]}
+
+data: {"p":"response/status","o":"SET","v":"FINISHED"}
+
+event: update_session
+data: {"updated_at":1790750732.857961}
+
+event: close
+data: {"click_behavior":"none","auto_resume":false}
+
