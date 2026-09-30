@@ -50,8 +50,29 @@ export interface WebBridgeOptions {
   sessionsFile?: string
 }
 
-/** 从持久化快照里挑一个可续接的 DeepSeek 会话（sentCount 最大者，v0.1 单会话假设） */
 export interface ResumeEntry { key: string; chatSessionId: string; sentCount: number }
+
+/**
+ * 从持久化快照里挑可续接的 DeepSeek 会话：仅当**恰好一个**可用条目时才深链恢复。
+ * 多会话并存时返回 null——v0.1 单 brain 假设，宁可开新会话（delta 自带上下文）
+ * 也不把 A 会话的轮次打进 B 会话的网页聊天造成串台。
+ */
+export function pickResumeEntry(snapshot: SessionSnapshot): ResumeEntry | null {
+  let best: ResumeEntry | null = null
+  for (const [key, rec] of Object.entries(snapshot)) {
+    const chatSessionId = sanitizeChatSessionId(rec?.chatSessionId)
+    if (!chatSessionId) continue
+    if (best) return null
+    best = { key, chatSessionId, sentCount: rec.sentCount }
+  }
+  return best
+}
+
+/** 纯函数：__comp 长度超过发送前基线 → 新请求下标（= preLen）；否则 -1（尚未捕获到请求）。
+ *  防止点击未触发请求时误读上一轮已完成 entry（会静默返回旧答案并屏蔽 no_request 检测） */
+export function resolveEntryIndex(currentLen: number, preLen: number): number {
+  return currentLen > preLen ? preLen : -1
+}
 
 export function chatUrlFor(chatSessionId: string): string {
   return `https://chat.deepseek.com/a/chat/s/${chatSessionId}`
@@ -60,16 +81,6 @@ export function chatUrlFor(chatSessionId: string): string {
 /** 只有形如 UUID 的 chatSessionId 才允许拼进 URL（防路径/查询注入） */
 export function sanitizeChatSessionId(v: unknown): string | null {
   return typeof v === 'string' && SESSION_URL_RE.test(v) ? v : null
-}
-
-export function pickResumeEntry(snapshot: SessionSnapshot): ResumeEntry | null {
-  let best: ResumeEntry | null = null
-  for (const [key, rec] of Object.entries(snapshot)) {
-    const chatSessionId = sanitizeChatSessionId(rec?.chatSessionId)
-    if (!chatSessionId) continue
-    if (!best || rec.sentCount > best.sentCount) best = { key, chatSessionId, sentCount: rec.sentCount }
-  }
-  return best
 }
 
 /** 纯函数：有可续接会话 → 深链；否则首页。无浏览器即可单测 */
@@ -197,7 +208,10 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
     if (!browser) throw new Error('browser not launched')
     const pages = await browser.pages()
     page = pages.find(p => p.url().includes('chat.deepseek.com')) ?? await browser.newPage()
-    const resume = pickResumeEntry(loadSessionSnapshot(sessionsFile))
+    const snap = loadSessionSnapshot(sessionsFile)
+    const resumableCount = Object.values(snap).filter(r => sanitizeChatSessionId(r?.chatSessionId)).length
+    if (resumableCount > 1) console.log(`[web-bridge] ${resumableCount} resumable sessions; opening fresh chat to avoid context mixing`)
+    const resume = pickResumeEntry(snap)
     if (resume) await openResumed(resume)
     else await openHome()
   }
@@ -232,6 +246,7 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
         await page.bringToFront()
         const ta = await page.waitForSelector('textarea', { timeout: 15000 })
         await ta!.click()
+        const preLen = await page.evaluate(() => (window as unknown as { __comp: unknown[] }).__comp.length)
         const cdp = await page.createCDPSession()
         await cdp.send('Input.insertText', { text: req.prompt })
         await clickSend(sel.send)
@@ -245,7 +260,8 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
         const deadline = Date.now() + (req.timeoutMs ?? config.timeoutMs)
         while (Date.now() < deadline) {
           if (entryIndex === -1) {
-            const idx = await page.evaluate(() => (window as unknown as { __comp: unknown[] }).__comp.length - 1)
+            const len = await page.evaluate(() => (window as unknown as { __comp: unknown[] }).__comp.length)
+            const idx = resolveEntryIndex(len, preLen)
             if (idx < 0 && Date.now() - t0 > config.sendClickSettleMs) {
               if (!retried) {
                 retried = true

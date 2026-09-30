@@ -11,6 +11,7 @@ import {
   chatUrlFor,
   pickResumeEntry,
   resolveStartUrl,
+  resolveEntryIndex,
 } from '../src/transport/web-bridge.js'
 import { computeSessionKey } from '../src/session/manager.js'
 import { runAgentTurn } from '../src/pipeline.js'
@@ -121,13 +122,31 @@ describe('start URL 选择（纯函数）', () => {
     expect(pickResumeEntry({})).toBeNull()
     expect(pickResumeEntry({ a: { chatSessionId: null, sentCount: 5 } })).toBeNull()
   })
-  it('多个可用条目取 sentCount 最大者', () => {
+  it('多会话并存时拒绝深链（避免上下文串台）', () => {
     const snap = {
       a: { chatSessionId: '3f2b1c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', sentCount: 2 },
       b: { chatSessionId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', sentCount: 7 },
       c: { chatSessionId: null, sentCount: 99 },
     }
+    expect(pickResumeEntry(snap)).toBeNull()
+  })
+  it('唯一可用条目时深链恢复', () => {
+    const snap = {
+      a: { chatSessionId: null, sentCount: 2 },
+      b: { chatSessionId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', sentCount: 7 },
+    }
     expect(pickResumeEntry(snap)!.chatSessionId).toBe('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
+  })
+})
+
+describe('generate 请求捕获（纯函数）', () => {
+  it('无新请求（长度未超基线）→ -1，不误读旧 entry', () => {
+    expect(resolveEntryIndex(2, 2)).toBe(-1)
+    expect(resolveEntryIndex(0, 0)).toBe(-1)
+  })
+  it('有新请求 → 新 entry 下标 = 发送前基线', () => {
+    expect(resolveEntryIndex(3, 2)).toBe(2)
+    expect(resolveEntryIndex(1, 0)).toBe(0)
   })
 })
 
