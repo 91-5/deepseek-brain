@@ -20,8 +20,11 @@ const CHAT_URL = 'https://chat.deepseek.com/'
 const SESSION_URL_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const PROGRESS_LOG_MS = 30000
 
-/** 页内探针：包裹 XHR，捕获 /chat/completion 的 body 与流式 responseText */
+/** 页内探针：包裹 XHR，捕获 /chat/completion 的 body 与流式 responseText。
+ *  幂等：重复注入（整页刷新后 framenavigated 重注）不会双重包裹 */
 const PROBE = `(() => {
+  if (window.__probeInstalled) return 'probe-ok'
+  window.__probeInstalled = true
   window.__comp = window.__comp || [];
   const oOpen = XMLHttpRequest.prototype.open;
   const oSend = XMLHttpRequest.prototype.send;
@@ -72,6 +75,23 @@ export function pickResumeEntry(snapshot: SessionSnapshot): ResumeEntry | null {
  *  防止点击未触发请求时误读上一轮已完成 entry（会静默返回旧答案并屏蔽 no_request 检测） */
 export function resolveEntryIndex(currentLen: number, preLen: number): number {
   return currentLen > preLen ? preLen : -1
+}
+
+/** done 后的状态判定：HTTP≥400 或 status===0（网络中止时 loadend 也置 done）→ 传输错误 */
+export function completionError(status: number | null): string | null {
+  if (status === null) return null
+  if (status === 0) return 'transport_error: completion aborted (network interrupted)'
+  if (status >= 400) return `transport_error: completion HTTP ${status}${status === 401 || status === 403 ? ' (login expired?)' : ''}`
+  return null
+}
+
+/** connect 重试：Chrome 冷启动可能超过固定 sleep，最多 attempts 次、间隔 delayMs（T8①） */
+export async function retryConnect<T>(fn: () => Promise<T>, attempts = 15, delayMs = 1000): Promise<T> {
+  let lastErr: unknown = new Error('retryConnect: no attempts')
+  for (let i = 0; i < attempts; i++) {
+    try { return await fn() } catch (e) { lastErr = e; if (i < attempts - 1) await sleep(delayMs) }
+  }
+  throw lastErr
 }
 
 export function chatUrlFor(chatSessionId: string): string {
@@ -168,8 +188,7 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
       '--no-first-run', '--no-default-browser-check',
       ...(config.browser.headless ? ['--headless=new'] : []),
     ], { detached: true, stdio: 'ignore' })
-    await sleep(1500)
-    browser = await puppeteer.connect({ browserURL: `http://127.0.0.1:${config.browser.debugPort}`, defaultViewport: null })
+    browser = await retryConnect(() => puppeteer.connect({ browserURL: `http://127.0.0.1:${config.browser.debugPort}`, defaultViewport: null }))
   }
 
   /** 首页路径：导航 + 注入探针 + 从 URL 提取新会话 id */
@@ -208,6 +227,11 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
     if (!browser) throw new Error('browser not launched')
     const pages = await browser.pages()
     page = pages.find(p => p.url().includes('chat.deepseek.com')) ?? await browser.newPage()
+    // 整页刷新后新 document 的 XHR 包装丢失，framenavigated 重注（PROBE 幂等不会双裹）（N4）
+    const p = page
+    p.on('framenavigated', frame => {
+      if (frame === p.mainFrame()) void p.evaluate(PROBE).catch(() => {})
+    })
     const snap = loadSessionSnapshot(sessionsFile)
     const resumableCount = Object.values(snap).filter(r => sanitizeChatSessionId(r?.chatSessionId)).length
     if (resumableCount > 1) console.log(`[web-bridge] ${resumableCount} resumable sessions; opening fresh chat to avoid context mixing`)
@@ -234,8 +258,12 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
     },
     async stop() {
       try { await browser?.close() } catch { /* detached chrome 不随连接关闭而退出 */ }
+      if (chromeProc?.pid) {
+        // Windows 下子 Chrome 进程可能残留持有 profile 锁，taskkill /T /F 杀整树保证可重启（N5）
+        try { spawn('taskkill', ['/pid', String(chromeProc.pid), '/T', '/F'], { stdio: 'ignore' }) } catch { /* taskkill 缺失时退回 chromeProc.kill */ }
+      }
       chromeProc?.kill()
-      browser = null; page = null
+      browser = null; page = null; chromeProc = null
     },
     async *generate(req): AsyncIterable<GenerateChunk> {
       if (!page) throw new Error('bridge not started')
@@ -289,9 +317,8 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
                 console.log(`[web-bridge] generating... resp=${st.resp.length}B, waited ${Math.round((Date.now() - t0) / 1000)}s`)
               }
               if (st.done) {
-                if (st.status !== null && st.status >= 400) {
-                  throw new Error(`transport_error: completion HTTP ${st.status}${st.status === 401 || st.status === 403 ? ' (login expired?)' : ''}`)
-                }
+                const err = completionError(st.status)
+                if (err) throw new Error(err)
                 const m = page.url().match(/\/a\/chat\/s\/([0-9a-f-]{36})/)
                 if (m) chatSessionId = m[1]
                 return

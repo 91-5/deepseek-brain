@@ -12,6 +12,8 @@ import {
   pickResumeEntry,
   resolveStartUrl,
   resolveEntryIndex,
+  retryConnect,
+  completionError,
 } from '../src/transport/web-bridge.js'
 import { computeSessionKey } from '../src/session/manager.js'
 import { runAgentTurn } from '../src/pipeline.js'
@@ -191,5 +193,27 @@ describe('pipeline 会话持久化（绑定要求）', () => {
     expect(t.prompts[0]).toContain('第二问')
     expect(t.prompts[0]).not.toContain('第一问')
     expect(loadSessionSnapshot(path.join(dir, 'missing.json'))[key].sentCount).toBe(messages.length)
+  })
+})
+
+describe('web-bridge 纯函数硬化（final review）', () => {
+  it('retryConnect：前两次失败后成功即 resolve', async () => {
+    let n = 0
+    const r = await retryConnect(async () => { n++; if (n < 3) throw new Error('nope'); return 'ok' }, 5, 1)
+    expect(r).toBe('ok')
+    expect(n).toBe(3)
+  })
+  it('retryConnect：始终失败则抛最后一次错误', async () => {
+    let n = 0
+    await expect(retryConnect(async () => { n++; throw new Error('fail-' + n) }, 3, 1)).rejects.toThrow('fail-3')
+    expect(n).toBe(3)
+  })
+  it('completionError：null/200 放行，0=网络中止，>=400 报错，401/403 提示登录失效', () => {
+    expect(completionError(null)).toBeNull()
+    expect(completionError(200)).toBeNull()
+    expect(completionError(0)).toContain('aborted')
+    expect(completionError(401)).toContain('login expired')
+    expect(completionError(403)).toContain('login expired')
+    expect(completionError(500)).toContain('HTTP 500')
   })
 })
