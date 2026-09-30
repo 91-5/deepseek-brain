@@ -85,8 +85,10 @@ export function createHttpServer(config: AppConfig): http.Server {
         res.writeHead(200, { 'content-type': 'application/json' })
         res.end(JSON.stringify(resp))
       } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        if (res.headersSent) { res.end(); return } // 流式已发 200 后出错：断流比 ERR_HTTP_HEADERS_SENT 炸进程好（N2）
         res.writeHead(502, { 'content-type': 'application/json' })
-        res.end(JSON.stringify({ error: { message: e instanceof Error ? e.message : String(e) } }))
+        res.end(JSON.stringify({ error: { message: msg } }))
       }
     })
   })

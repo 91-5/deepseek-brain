@@ -43,12 +43,36 @@ function initialSentCount(messages: OpenAIMessage[]): number {
   return messages.map(m => m.role).lastIndexOf('assistant') + 1
 }
 
+/**
+ * sentCount 钳制：OpenCode 历史回退/取消时持久化 sentCount 可能超过当前 messages 长度，
+ * 裸 slice 会得空 delta（整轮只发 system prompt → 垃圾回答）。钳到最后一条 user 消息下标，
+ * 保证 delta 至少包含触发本轮的那条 user 消息（N3）。
+ */
+export function clampSentCount(stored: number, messages: OpenAIMessage[]): number {
+  const lastUser = messages.map(m => m.role).lastIndexOf('user')
+  return Math.min(stored, lastUser < 0 ? messages.length : lastUser)
+}
+
+/** tool_call_id → 工具名：从历史 assistant.tool_calls 建表，渲染工具结果时报真名（T6①） */
+function toolNameMap(messages: OpenAIMessage[]): Map<string, string> {
+  const names = new Map<string, string>()
+  for (const m of messages) {
+    if (m.role === 'assistant' && m.tool_calls) {
+      for (const tc of m.tool_calls) if (tc.function?.name) names.set(tc.id, tc.function.name)
+    }
+  }
+  return names
+}
+
 /** delta 只取 user/tool 消息：assistant 的历史动作网页会话里模型自己已见过 */
-function buildPrompt(delta: OpenAIMessage[], tools: ToolSpec[], withFixHint: boolean, toolMaxChars: number): string {
+function buildPrompt(delta: OpenAIMessage[], tools: ToolSpec[], withFixHint: boolean, toolMaxChars: number, toolNames: Map<string, string>): string {
   const sys = buildSystemPrompt(tools)
   const parts = [sys]
   for (const m of delta) {
-    if (m.role === 'tool') parts.push(renderToolResult(m.tool_call_id ?? 'unknown', m.content, toolMaxChars))
+    if (m.role === 'tool') {
+      const name = toolNames.get(m.tool_call_id ?? '') ?? m.tool_call_id ?? 'unknown'
+      parts.push(renderToolResult(name, m.content, toolMaxChars))
+    }
     else parts.push(`[${m.role}] ${m.content}`)
   }
   if (withFixHint) parts.push(FIX_HINT)
@@ -64,7 +88,8 @@ export async function runAgentTurn(opts: {
   const { messages, tools, transport, config } = opts
   const key = computeSessionKey(messages)
   const sessions = openSessionStore()
-  const entry: SessionRecord = sessions.get(key) ?? { chatSessionId: null, sentCount: initialSentCount(messages) }
+  const stored = sessions.get(key) ?? { chatSessionId: null, sentCount: initialSentCount(messages) }
+  const entry: SessionRecord = { chatSessionId: stored.chatSessionId, sentCount: clampSentCount(stored.sentCount, messages) }
   const delta = newMessagesSince(messages, entry.sentCount)
     .filter(m => m.role === 'user' || m.role === 'tool')
 
@@ -78,14 +103,14 @@ export async function runAgentTurn(opts: {
       timeoutMs: config.timeoutMs,
     })) { if (c.content) summary += c.content }
     sendDelta = [{ role: 'user', content: `【进展摘要】${summary}\n请在此基础上继续完成原任务。` }]
-    sessions.set(key, { chatSessionId: null, sentCount: 0 })
+    sessions.set(key, { chatSessionId: null, sentCount: clampSentCount(0, sendDelta) })
   }
 
   let content = '', reasoning = '', usageTokens = 0
   for (let attempt = 0; attempt <= config.maxFormatRetries; attempt++) {
     content = ''; reasoning = ''
     const iter = transport.generate({
-      prompt: buildPrompt(sendDelta, tools, attempt > 0, config.toolResultMaxChars),
+      prompt: buildPrompt(sendDelta, tools, attempt > 0, config.toolResultMaxChars, toolNameMap(messages)),
       thinking: config.thinking,
       timeoutMs: config.thinking ? config.thinkingTimeoutMs : config.timeoutMs,
     })

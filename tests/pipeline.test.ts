@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { runAgentTurn } from '../src/pipeline.js'
+import { runAgentTurn, clampSentCount } from '../src/pipeline.js'
 import type { Transport } from '../src/transport/types.js'
 import { loadConfig } from '../src/config.js'
 import type { OpenAIMessage, ToolSpec } from '../src/types.js'
@@ -75,5 +75,37 @@ describe('runAgentTurn', () => {
     const r = await runAgentTurn({ messages, tools: TOOLS, transport: t, config: cfg })
     expect(t.prompts[0]).toContain('第二问')
     expect(t.prompts[0]).not.toContain('第一问')
+  })
+})
+
+describe('toolNameMap/clampSentCount 边界', () => {
+  it('工具结果渲染用 assistant.tool_calls 里的真名', async () => {
+    const msgs: OpenAIMessage[] = [
+      { role: 'user', content: '跑一下搜索' },
+      { role: 'assistant', content: '', tool_calls: [{ id: 'call_7', type: 'function', function: { name: 'web_search', arguments: '{}' } }] },
+      { role: 'tool', content: '结果A', tool_call_id: 'call_7' },
+      { role: 'user', content: '继续' },
+    ]
+    const t = fakeTransport([[{ content: '收到' }]])
+    await runAgentTurn({ messages: msgs, tools: TOOLS, transport: t, config: cfg })
+    expect(t.prompts[0]).toContain('[工具 web_search 返回]')
+    expect(t.prompts[0]).not.toContain('call_7')
+  })
+  it('assistant 之后的 user 轮：delta 只含触发轮的 user 消息', async () => {
+    const msgs: OpenAIMessage[] = [
+      { role: 'user', content: '第一问' },
+      { role: 'assistant', content: '第一答' },
+      { role: 'user', content: '回退后的新问题' },
+    ]
+    const t = fakeTransport([[{ content: '答' }]])
+    await runAgentTurn({ messages: msgs, tools: TOOLS, transport: t, config: cfg })
+    expect(t.prompts[0]).toContain('回退后的新问题')
+    expect(t.prompts[0]).not.toContain('第一问')
+  })
+  it('clampSentCount：正常值不动、无 user 时取全长', () => {
+    expect(clampSentCount(1, [{ role: 'user', content: 'a' }, { role: 'assistant', content: 'b' }, { role: 'user', content: 'c' }])).toBe(1)
+    expect(clampSentCount(99, [{ role: 'user', content: 'a' }, { role: 'assistant', content: 'b' }, { role: 'user', content: 'c' }])).toBe(2)
+    expect(clampSentCount(0, [{ role: 'user', content: 'a' }])).toBe(0)
+    expect(clampSentCount(5, [{ role: 'assistant', content: 'a' }, { role: 'assistant', content: 'b' }])).toBe(2)
   })
 })
