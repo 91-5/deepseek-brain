@@ -5,6 +5,7 @@ import { parseModelOutput } from './protocol/parser.js'
 import { renderToolResult } from './protocol/tool-result.js'
 import type { Transport } from './transport/types.js'
 import { computeSessionKey, newMessagesSince } from './session/manager.js'
+import { createSessionStore, DEFAULT_SESSIONS_FILE, type SessionRecord, type SessionStore } from './session/store.js'
 import { buildCompactPrompt, totalTokens } from './session/compact.js'
 
 const FENCE_OPEN = '```tool_call'
@@ -15,10 +16,16 @@ export class FormatGiveUpError extends Error {
   constructor() { super('format_give_up: 模型连续输出无法解析的工具调用'); this.name = 'FormatGiveUpError' }
 }
 
-interface SessionEntry { chatSessionId: string | null; sentCount: number }
-
-/** 会话表：OpenCode 会话 key → DeepSeek 会话状态。单进程内存态。 */
-const sessions = new Map<string, SessionEntry>()
+/**
+ * 会话表入口：每次调用按 env 新建 store 并从 .sessions.json hydration——
+ * 进程重启后「OpenCode 会话 key → DeepSeek 会话」的映射不丢（绑定要求，
+ * 否则 delta 会跳过历史造成上下文断裂）。
+ * NODE_ENV=test（vitest）下退化为纯内存，避免单测污染仓库根。
+ */
+function openSessionStore(): SessionStore {
+  if (process.env.NODE_ENV === 'test') return createSessionStore(null)
+  return createSessionStore(process.env.SESSIONS_FILE ?? DEFAULT_SESSIONS_FILE)
+}
 
 export interface TurnResult {
   content: string
@@ -56,7 +63,8 @@ export async function runAgentTurn(opts: {
 }): Promise<TurnResult> {
   const { messages, tools, transport, config } = opts
   const key = computeSessionKey(messages)
-  const entry = sessions.get(key) ?? { chatSessionId: null, sentCount: initialSentCount(messages) }
+  const sessions = openSessionStore()
+  const entry: SessionRecord = sessions.get(key) ?? { chatSessionId: null, sentCount: initialSentCount(messages) }
   const delta = newMessagesSince(messages, entry.sentCount)
     .filter(m => m.role === 'user' || m.role === 'tool')
 
