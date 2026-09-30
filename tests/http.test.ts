@@ -168,4 +168,28 @@ describe('http server', () => {
     expect(frames.some(d => d.choices[0].delta.tool_calls?.[0]?.function?.name === 'read_file')).toBe(true)
     expect(text).toContain('data: [DONE]')
   })
+
+  it('客户端断连（SSE 中途 abort）不拖垮服务', async () => {
+    const slow: Transport = {
+      async *generate() {
+        await new Promise(r => setTimeout(r, 300)) // 模拟慢生成，abort 后 write 才落到死 socket
+        yield { content: '迟到的回答' }
+      },
+      async health() { return 'ok' as const },
+      lastChatSessionId() { return 'sess-1' },
+      resetSession() {},
+      async newChat() {},
+    }
+    setTransportGetter(() => slow)
+    const ac = new AbortController()
+    setTimeout(() => ac.abort(), 50)
+    await fetch(`http://127.0.0.1:${port}/v1/chat/completions`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'deepseek-web-brain', messages: [{ role: 'user', content: 'abort-1' }], stream: true }),
+      signal: ac.signal,
+    }).catch(() => {})
+    await new Promise(r => setTimeout(r, 400)) // 等 generate 完成、SSE write 打到断开的 socket
+    const res = await fetch(`http://127.0.0.1:${port}/v1/models`) // 进程/服务仍存活
+    expect(res.status).toBe(200)
+  }, 8000)
 })

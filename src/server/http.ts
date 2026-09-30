@@ -26,6 +26,9 @@ export function setTransportGetter(fn: () => Transport): void { transportGetter 
 
 export function createHttpServer(config: AppConfig): http.Server {
   return http.createServer(async (req, res) => {
+    // 客户端断连（OpenCode 取消/切会话）时 write 会 EPIPE、body 读取会报错——无监听会炸整个进程
+    res.on('error', () => {})
+    req.on('error', () => {})
     const url = new URL(req.url ?? '/', 'http://localhost')
     if (req.method === 'GET' && url.pathname === '/v1/models') {
       res.writeHead(200, { 'content-type': 'application/json' })
