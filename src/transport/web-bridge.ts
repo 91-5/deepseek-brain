@@ -152,6 +152,14 @@ function sleep(ms: number): Promise<void> { return new Promise(r => setTimeout(r
 const SELECTORS_PATH = fileURLToPath(new URL('../../selectors.json', import.meta.url))
 
 let selectorsCache: { send: string; newChat: string } | null = null
+/** 界面语言兜底：selectors.json 的 newChat 不命中时依次尝试（2026-09-30 实测中文界面按钮文案为「开启新对话」） */
+export const NEW_CHAT_FALLBACKS = ['::-p-text(开启新对话)', '::-p-text(New chat)']
+
+/** 从 ::-p-text(X) 选择器提取裸文本；非 p-text 选择器返回 null */
+export function textFromPTextSelector(sel: string): string | null {
+  const m = sel.match(/^::-p-text\((.*)\)$/)
+  return m ? m[1] : null
+}
 function readSelectors(): { send: string; newChat: string } {
   if (!selectorsCache) {
     selectorsCache = JSON.parse(fs.readFileSync(SELECTORS_PATH, 'utf-8')) as { send: string; newChat: string }
@@ -166,6 +174,19 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
   let chromeProc: ReturnType<typeof spawn> | null = null
   let generating = false
   let chatSessionId: string | null = null
+
+  /** JS 派发点击：::-p-text 命中的是嵌套 div 文本节点，CDP hit-test 不可点，
+   *  locator.click() 会卡在 actionability 等待直到超时（2026-09-30 实测）；
+   *  冒泡 MouseEvent 直接派发，SPA 的 React 合成事件正常响应。 */
+  async function jsClickByText(text: string): Promise<boolean> {
+    if (!page) throw new Error('bridge not started')
+    return page.evaluate(t => {
+      const els = [...document.querySelectorAll('div,button,span')].filter(el => (el.textContent ?? '').trim() === t)
+      if (!els.length) return false
+      for (const el of els) el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }))
+      return true
+    }, text)
+  }
 
   async function ensureProfileDir(): Promise<void> {
     const dest = path.resolve(config.browser.profileDir)
@@ -367,8 +388,16 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
     },
     async newChat() {
       if (!page) throw new Error('bridge not started')
-      try { await page.locator(readSelectors().newChat).click() }
-      catch {
+      // 界面语言兜底：selectors.json 为主，NEW_CHAT_FALLBACKS 双语候补（去重保序）
+      let clicked = false
+      for (const sel of [...new Set([readSelectors().newChat, ...NEW_CHAT_FALLBACKS])]) {
+        const text = textFromPTextSelector(sel)
+        if (!text) continue
+        try {
+          if (await jsClickByText(text)) { clicked = true; break }
+        } catch { /* 选择器无效/语言不匹配：试下一个 */ }
+      }
+      if (!clicked) {
         await dumpDom('selector-newchat')
         throw new Error('ui_changed: newChat selector not found')
       }

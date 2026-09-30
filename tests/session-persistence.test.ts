@@ -14,6 +14,8 @@ import {
   resolveEntryIndex,
   retryConnect,
   completionError,
+  NEW_CHAT_FALLBACKS,
+  textFromPTextSelector,
 } from '../src/transport/web-bridge.js'
 import { computeSessionKey } from '../src/session/manager.js'
 import { runAgentTurn } from '../src/pipeline.js'
@@ -197,6 +199,18 @@ describe('pipeline 会话持久化（绑定要求）', () => {
 })
 
 describe('web-bridge 纯函数硬化（final review）', () => {
+  it('newChat 语言兜底：中文优先 + 英文候补，且与 selectors.json 主选择器不重复', () => {
+    expect(NEW_CHAT_FALLBACKS[0]).toBe('::-p-text(开启新对话)')
+    expect(NEW_CHAT_FALLBACKS).toContain('::-p-text(New chat)')
+    const primary = JSON.parse(fs.readFileSync(new URL('../selectors.json', import.meta.url), 'utf-8')).newChat
+    const chain = [...new Set([primary, ...NEW_CHAT_FALLBACKS])]
+    expect(chain).toHaveLength(2)
+  })
+  it('textFromPTextSelector：提取裸文本，非 p-text 返回 null', () => {
+    expect(textFromPTextSelector('::-p-text(开启新对话)')).toBe('开启新对话')
+    expect(textFromPTextSelector('::-p-text(New chat)')).toBe('New chat')
+    expect(textFromPTextSelector('div.foo')).toBeNull()
+  })
   it('retryConnect：前两次失败后成功即 resolve', async () => {
     let n = 0
     const r = await retryConnect(async () => { n++; if (n < 3) throw new Error('nope'); return 'ok' }, 5, 1)

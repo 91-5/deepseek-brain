@@ -1,4 +1,4 @@
 {
   "send": "div.ds-button--primary.ds-button--filled.ds-button--circle[role=\"button\"]",
-  "newChat": "::-p-text(New chat)"
+  "newChat": "::-p-text(开启新对话)"
 }
