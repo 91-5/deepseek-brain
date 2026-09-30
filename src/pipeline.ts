@@ -5,6 +5,7 @@ import { parseModelOutput } from './protocol/parser.js'
 import { renderToolResult } from './protocol/tool-result.js'
 import type { Transport } from './transport/types.js'
 import { computeSessionKey, newMessagesSince } from './session/manager.js'
+import { buildCompactPrompt, totalTokens } from './session/compact.js'
 
 const FENCE_OPEN = '```tool_call'
 
@@ -59,11 +60,24 @@ export async function runAgentTurn(opts: {
   const delta = newMessagesSince(messages, entry.sentCount)
     .filter(m => m.role === 'user' || m.role === 'tool')
 
+  let sendDelta = delta
+  if (delta.length > 0 && totalTokens(messages) > config.compactTokenThreshold) {
+    await transport.newChat()
+    let summary = ''
+    for await (const c of transport.generate({
+      prompt: buildCompactPrompt(messages),
+      thinking: false,
+      timeoutMs: config.timeoutMs,
+    })) { if (c.content) summary += c.content }
+    sendDelta = [{ role: 'user', content: `【进展摘要】${summary}\n请在此基础上继续完成原任务。` }]
+    sessions.set(key, { chatSessionId: null, sentCount: 0 })
+  }
+
   let content = '', reasoning = '', usageTokens = 0
   for (let attempt = 0; attempt <= config.maxFormatRetries; attempt++) {
     content = ''; reasoning = ''
     const iter = transport.generate({
-      prompt: buildPrompt(delta, tools, attempt > 0, config.toolResultMaxChars),
+      prompt: buildPrompt(sendDelta, tools, attempt > 0, config.toolResultMaxChars),
       thinking: config.thinking,
       timeoutMs: config.thinking ? config.thinkingTimeoutMs : config.timeoutMs,
     })

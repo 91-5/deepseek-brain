@@ -22,6 +22,7 @@ function fakeTransport(attempts: Array<Array<{ reasoning?: string; content?: str
     async health() { return 'ok' as const },
     lastChatSessionId() { return 'sess-1' },
     resetSession() {},
+    async newChat() {},
   }
 }
 
