@@ -36,7 +36,8 @@ function num(v: string | undefined, d: number): number {
 export function loadConfig(env: Record<string, string | undefined> = process.env): AppConfig {
   return {
     ...DEFAULTS,
-    log: { ...DEFAULTS.log },
+    // LOG_LEVEL 之前只被 CLI 写、没人读——log.level 恒为 'info'，--verbose 形同虚设
+    log: { ...DEFAULTS.log, level: env.LOG_LEVEL || DEFAULTS.log.level },
     port: num(env.PORT, DEFAULTS.port),
     thinking: env.THINKING ? env.THINKING === 'true' : DEFAULTS.thinking,
     timeoutMs: num(env.TIMEOUT_MS, DEFAULTS.timeoutMs),

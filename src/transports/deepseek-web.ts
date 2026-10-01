@@ -159,6 +159,17 @@ export function bucketSSE(sse: string): { reasoning: string; content: string } {
 function sleep(ms: number): Promise<void> { return new Promise(r => setTimeout(r, ms)) }
 
 /**
+ * debug 级输出闸门：LOG_LEVEL=debug（CLI --verbose）才打。
+ *
+ * 刻意只有一个函数、只有一层判断——不给这个项目造日志框架。
+ * 挂上来的都是「每次尝试都打一遍」的恢复诊断；状态变更的解释
+ * （DOM 快照、丢弃过期会话条目等）仍留在 info，默认输出一行未减。
+ */
+export function debugLog(level: string, ...args: unknown[]): void {
+  if (level === 'debug') console.log(...args)
+}
+
+/**
  * (b) 增量 SSE 消费。
  *
  * generate() 每 400ms 轮询一次。若每次都把全量 resp 重新喂给 bucketSSE，
@@ -368,12 +379,12 @@ let starting: Promise<void> | null = null
       if (page.url().includes(`/a/chat/s/${resume.chatSessionId}`)) {
         chatSessionId = resume.chatSessionId
         await page.evaluate(PROBE)
-        console.log(`[web-bridge] resumed session ${resume.chatSessionId} (sentCount=${resume.sentCount})`)
+        debugLog(config.log.level, `[web-bridge] resumed session ${resume.chatSessionId} (sentCount=${resume.sentCount})`)
         return
       }
-      console.log(`[web-bridge] resume target redirected to ${page.url()}`)
+      debugLog(config.log.level, `[web-bridge] resume target redirected to ${page.url()}`)
     } catch (e) {
-      console.log('[web-bridge] resume navigation failed:', e instanceof Error ? e.message : e)
+      debugLog(config.log.level, '[web-bridge] resume navigation failed:', e instanceof Error ? e.message : e)
     }
     await dumpDom('resume-failed')
     dropPersistedEntry(resume.key)
