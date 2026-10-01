@@ -30,10 +30,22 @@
 
 要求：**Windows** + **Node.js >= 20** + **Chrome 或 Edge**（Chromium 亦可）。
 
+**方式一：Git 安装（当前推荐，无需 npm 账号/registry）**
+
 ```bash
-npm install -g deepseek-brain     # 全局安装，得到 deepseek-brain 命令
+# 全局安装（npm 会克隆仓库并自动构建）：
+npm install -g github:91-5/-deepseek-brain#v0.2.0
+
 # 或者不装直接跑：
-npx deepseek-brain
+npx github:91-5/-deepseek-brain#v0.2.0
+```
+
+> 仓库名含前导连字符是刻意的，命令里照抄即可。安装走的是 GitHub 而非 npm registry，国内网络通常可直接使用。
+
+**方式二：npm registry（暂未发布）**
+
+```bash
+npm install -g deepseek-brain     # 待正式发布后可用
 ```
 
 ---
