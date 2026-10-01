@@ -73,5 +73,5 @@
 - WebBridge 封装 puppeteer-core 会话恢复、选择器点击与 DOM 文本抓取。
 - 工具调用协议解析与格式重试。
 
-[0.2.0]: https://github.com/15812/deepseek-brain/releases/tag/v0.2.0
-[0.1.0]: https://github.com/15812/deepseek-brain/releases/tag/v0.1.0
+[0.2.0]: https://github.com/91-5/deepseek-brain/releases/tag/v0.2.0
+[0.1.0]: https://github.com/91-5/deepseek-brain/releases/tag/v0.1.0
