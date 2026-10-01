@@ -1,7 +1,6 @@
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
-import os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import puppeteer from 'puppeteer-core'
 import type { Browser, Page } from 'puppeteer-core'
@@ -13,9 +12,8 @@ import {
   saveSessionSnapshot,
   type SessionSnapshot,
 } from '../session/store.js'
+import { detectWindowsChrome, chromeNotFoundMessage, windowsChromeCandidates } from '../transports/chrome-detect.js'
 
-const CHROME = process.env.CHROME_PATH ?? 'C:\\Users\\15812\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe'
-const NUPHUS_PROFILE = path.join(os.homedir(), 'AppData', 'Roaming', 'Nuphus', 'browser_profile_v2')
 const CHAT_URL = 'https://chat.deepseek.com/'
 const SESSION_URL_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const PROGRESS_LOG_MS = 30000
@@ -190,17 +188,12 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
 
   async function ensureProfileDir(): Promise<void> {
     const dest = path.resolve(config.browser.profileDir)
-    // 判据要同时认新旧布局：新版 Chrome 的 Cookies 在 Default\Network\Cookies（只查 Default\Cookies
-    // 会永远为 false，导致每次启动重覆 Nuphus profile、盖掉 shim Chrome 里的登录态）
+    fs.mkdirSync(dest, { recursive: true })
+    // 判据要同时认新旧布局：新版 Chrome 的 Cookies 在 Default\Network\Cookies
     const seeded = fs.existsSync(path.join(dest, 'Default', 'Network', 'Cookies'))
       || fs.existsSync(path.join(dest, 'Default', 'Cookies'))
-    if (seeded) return
-    fs.mkdirSync(dest, { recursive: true })
-    try {
-      fs.cpSync(NUPHUS_PROFILE, dest, { recursive: true, errorOnExist: false })
-      console.log('[web-bridge] copied Nuphus profile (login reused)')
-    } catch (e) {
-      console.log('[web-bridge] fresh profile; manual login required on first run:', e instanceof Error ? e.message : e)
+    if (!seeded) {
+      console.log('[web-bridge] fresh profile — first run needs manual login in the Chrome window')
     }
   }
 
@@ -228,8 +221,9 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
 
   async function launch(): Promise<void> {
     await ensureProfileDir()
-    if (!fs.existsSync(CHROME)) throw new Error(`chrome not found: ${CHROME}`)
-    chromeProc = spawn(CHROME, [
+    const chrome = detectWindowsChrome()
+    if (!chrome) throw new Error(chromeNotFoundMessage(windowsChromeCandidates(process.env)))
+    chromeProc = spawn(chrome, [
       `--remote-debugging-port=${config.browser.debugPort}`,
       `--user-data-dir=${path.resolve(config.browser.profileDir)}`,
       '--no-first-run', '--no-default-browser-check',
