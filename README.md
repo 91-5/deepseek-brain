@@ -154,7 +154,6 @@ Chrome 探测顺序（`CHROME_PATH` / `--chrome-path` 优先于这张表）：
 | `--headless` | 关 | 给 Chrome 加 `--headless=new`。默认关闭是因为很多站点检测 headless 特征会**当场拒绝服务**，不是风险规避。 |
 | `--verbose` | 关 | 等价于 `LOG_LEVEL=debug`，打开**三处会话恢复诊断**（恢复的 sessionId / 恢复目标被重定向 / 恢复导航失败）。 |
 | `--help`, `-h` | — | 打印用法后退出。 |
-| `--pool-size <n>` | `1` | ⚠️ **本版本只解析、不实现**——写什么并发都是 1。留这个口是为了让「我想开并发」的人得到一句明确的「没实现」而不是静默串行。 |
 
 坏值一律报错而不是静默降级（静默的 `NaN` 会一路传到 `server.listen()`，用户看到的是网络层报错，排查方向完全跑偏）。未知 flag 忽略（向前兼容），**未知子命令报错**——否则 `deepseek-brain logout` 会被当成 `serve` 默默起一个服务。
 
@@ -207,7 +206,7 @@ result.usageTokens // 估算值
 
 - **Windows only。** 非 Windows 平台 `npm install` 即被拒绝。
 - **选择器脆弱。** 依赖 `selectors.json` 里的 DOM 选择器，DeepSeek 改版即失效。`/health` 报 `ui_changed` 就是这个信号：既没有输入框也没有登录入口，多半是选择器过期了。
-- **单会话、单账号、并发 = 1。** `--pool-size` 只解析不实现。同一账号开多个上下文会导致网页侧会话互扰与 `sentCount` 串台。
+- **单会话、单账号、并发 = 1。** 本版本不提供并发开关。同一账号开多个上下文会导致网页侧会话互扰与 `sentCount` 串台。
 - **token 估算是 `Math.ceil(text.length / 2)`。** 这是字符数除以 2，不是真 tokenizer——中文/英文混排时偏差很大。compaction 因此可能**偏晚触发**。改阈值用 `COMPACT_THRESHOLD` 或 `deps.threshold`，别指望那个数字准。
 - **上下文墙仍然存在。** compaction 只是缓解：摘要质量取决于网页版模型本身，撞上真·上下文墙时可能整轮失败。
 - **只实现 `POST /v1/chat/completions`。** 没有 `/v1/messages`、没有 embeddings、没有图片输入、没有批量接口。**因此 Claude Code 不能直连**（见 `examples/claude-code.md`）。

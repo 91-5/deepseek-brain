@@ -28,8 +28,6 @@ function applyFlags(o: ReturnType<typeof parseArgs>): ReturnType<typeof loadConf
   const config = loadConfig(env)
   if (o.profile) config.browser.profileDir = o.profile
   if (o.headless) config.browser.headless = true
-  // poolSize 本版本只解析不实现并发池；显式留口说明，避免读者以为漏了。
-  void o.poolSize
   return config
 }
 

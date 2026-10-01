@@ -1,11 +1,9 @@
 /** CLI 解析结果。默认值是「能跑起来」的保守值，见 spec §6：
- *  并发 1、headless 关——两者都是「默认开会功能失败」而非风险规避。 */
+ *  headless 关——那是「默认开会功能失败」而非风险规避。 */
 export interface CliOptions {
   port: number
   profile?: string
   chromePath?: string
-  /** 透传给上层；本版本只解析不实现并发池 */
-  poolSize: number
   /** 透传给上层；本版本只解析不实现 headless 行为 */
   headless: boolean
   verbose: boolean
@@ -27,7 +25,6 @@ export function helpText(): string {
   --port <n>            监听端口（默认 ${DEFAULT_PORT}）
   --profile <dir>       Chrome profile 目录（默认 .chrome-profile）
   --chrome-path <exe>   指定 Chrome 可执行文件，跳过自动探测
-  --pool-size <n>       并发数，默认 1；单账号多上下文会导致网页侧会话互扰
   --headless            无头模式，默认关闭；很多站点会当场拒绝服务
   --verbose             打开调试日志
 
@@ -38,7 +35,7 @@ export function helpText(): string {
 }
 
 /** 需要取值的 flag → 报错时展示的名字 */
-const VALUE_FLAGS = new Set(['--port', '--profile', '--chrome-path', '--pool-size'])
+const VALUE_FLAGS = new Set(['--port', '--profile', '--chrome-path'])
 
 /**
  * 解析命令行参数。**坏值一律抛错**而不是悄悄降级：
@@ -51,7 +48,6 @@ const VALUE_FLAGS = new Set(['--port', '--profile', '--chrome-path', '--pool-siz
 export function parseArgs(argv: string[]): CliOptions {
   const o: CliOptions = {
     port: DEFAULT_PORT,
-    poolSize: 1,
     headless: false,
     verbose: false,
     command: 'serve',
@@ -64,11 +60,10 @@ export function parseArgs(argv: string[]): CliOptions {
     if (a === '--help' || a === '-h') { o.help = true; continue }
     if (a === '--headless') { o.headless = true; continue }
     if (a === '--verbose') { o.verbose = true; continue }
-    if (a === '--port' || a === '--profile' || a === '--chrome-path' || a === '--pool-size') {
+    if (a === '--port' || a === '--profile' || a === '--chrome-path') {
       const raw = argv[++i]
       if (raw === undefined) throw new Error(`${a} 需要一个值`)
       if (a === '--port') o.port = parsePort(raw)
-      else if (a === '--pool-size') o.poolSize = parsePoolSize(raw)
       else if (a === '--profile') o.profile = raw
       else o.chromePath = raw
       continue
@@ -85,12 +80,6 @@ function parsePort(raw: string): number {
   const n = Number(raw)
   if (n < 1 || n > 65535) throw new Error(`--port 超出范围 1-65535，收到 "${raw}"`)
   return n
-}
-
-/** pool-size 允许非正数输入并夹到 1（那是「等于没开」的明确意图），但拒绝非数字 */
-function parsePoolSize(raw: string): number {
-  if (!/^-?\d+$/.test(raw)) throw new Error(`--pool-size 需要一个整数，收到 "${raw}"`)
-  return Math.max(1, Number(raw))
 }
 
 /**

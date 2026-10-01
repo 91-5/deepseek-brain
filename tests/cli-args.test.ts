@@ -1,10 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { parseArgs, helpText } from '../src/cli-args.js'
+import { parseArgs, helpText, DEFAULT_PORT } from '../src/cli-args.js'
 
 describe('parseArgs', () => {
-  it('默认串行且 headless 关', () => {
+  it('默认 headless 关', () => {
     const o = parseArgs([])
-    expect(o.poolSize).toBe(1)
     expect(o.headless).toBe(false)
     expect(o.command).toBe('serve')
     expect(o.port).toBe(8790)
@@ -27,8 +26,11 @@ describe('parseArgs', () => {
     const o = parseArgs(['--profile', 'D:/p', '--chrome-path', 'C:/chrome.exe'])
     expect(o.profile).toBe('D:/p'); expect(o.chromePath).toBe('C:/chrome.exe')
   })
-  it('解析 --pool-size', () => {
-    expect(parseArgs(['--pool-size', '4']).poolSize).toBe(4)
+  // --pool-size 从未实现，发布前整条链路移除。它现在只是一个未知 flag：
+  // 自身被静默忽略，但它带的值会掉到子命令判定上并报错（`4` 不是 serve/login）。
+  it('已移除的 --pool-size 退化为未知 flag：自身忽略，带值则报未知子命令', () => {
+    expect(parseArgs(['--pool-size']).port).toBe(DEFAULT_PORT)
+    expect(() => parseArgs(['--pool-size', '4'])).toThrow(/unknown command/i)
   })
 
   it('login 子命令后仍可带 flag', () => {
@@ -49,11 +51,6 @@ describe('parseArgs', () => {
     expect(() => parseArgs(['--port', '0x10'])).toThrow(/port/i)
     expect(() => parseArgs(['--port', '8080.5'])).toThrow(/port/i)
   })
-  it('--pool-size 非法值抛错；0 或负数按 plan 夹到 1', () => {
-    expect(() => parseArgs(['--pool-size', 'x'])).toThrow(/pool-size/i)
-    expect(parseArgs(['--pool-size', '0']).poolSize).toBe(1)
-    expect(parseArgs(['--pool-size', '-3']).poolSize).toBe(1)
-  })
   it('--profile / --chrome-path 缺值抛错', () => {
     expect(() => parseArgs(['--profile'])).toThrow(/profile/i)
     expect(() => parseArgs(['--chrome-path'])).toThrow(/chrome-path/i)
@@ -68,8 +65,14 @@ describe('parseArgs', () => {
 
   it('helpText 覆盖全部 flag 与子命令', () => {
     const h = helpText()
-    for (const f of ['--port', '--profile', '--chrome-path', '--pool-size', '--headless', '--verbose', 'login']) {
+    for (const f of ['--port', '--profile', '--chrome-path', '--headless', '--verbose', 'login']) {
       expect(h).toContain(f)
     }
+  })
+
+  // 帮助文本是唯一面向用户的 flag 清单：它宣传什么，用户就以为支持什么。
+  // 没实现的 flag 不能出现在这里。
+  it('helpText 不宣传任何未实现的 flag', () => {
+    expect(helpText()).not.toMatch(/pool-size/)
   })
 })
