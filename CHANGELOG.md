@@ -31,6 +31,12 @@
   与 vite 等 bundler 均可正确解析。
 - 可安装的 `bin`：`npx deepseek-brain` 可直接运行。
 
+### 修复
+
+- 修正 README 安装命令中的仓库名：`npm install -g github:91-5/-deepseek-brain#v0.2.0`
+  指向一个只短暂存在过的仓库名，照抄会 404。正确为 `github:91-5/deepseek-brain#v0.2.0`。
+  同段「仓库名含前导连字符是刻意的」一句已随改名删除。
+
 ### 变更
 
 - 内部重构为三层（`core` / `transports` / `server`）。`core` 为纯逻辑层，
