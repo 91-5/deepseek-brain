@@ -1,0 +1,52 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: install
+        run: npm ci
+
+      - name: typecheck (src)
+        run: npm run typecheck
+
+      - name: typecheck (tests)
+        run: npm run typecheck:test
+
+      - name: test
+        run: npm test
+
+      - name: build
+        run: npm run build
+
+      - name: verify bin shebang survived compilation
+        run: node -e "const s=require('fs').readFileSync('dist/cli.js','utf8');if(!s.startsWith('#!/usr/bin/env node')){console.error('SHEBANG LOST');process.exit(1)}console.log('SHEBANG OK')"
+
+      - name: verify declaration output
+        run: node -e "const fs=require('fs');for(const f of ['dist/index.d.ts','dist/core/index.d.ts'])if(!fs.existsSync(f)){console.error('MISSING',f);process.exit(1)}console.log('DECLARATIONS OK')"
+
+      # 真实发布门：tarball 必须能从零安装、bin 必须能跑。
+      # 用 --help 做冒烟：完整启动会拉起 Chrome 并阻塞等登录，CI 里必然挂死。
+      - name: verify tarball installs and bin runs
+        shell: pwsh
+        run: |
+          npm pack
+          $dest = Join-Path $env:RUNNER_TEMP "packtest"
+          New-Item -ItemType Directory -Force $dest | Out-Null
+          Copy-Item *.tgz $dest\
+          Push-Location $dest
+          npm init -y
+          npm install (Get-Item *.tgz).FullName --no-audit --no-fund
+          npx deepseek-brain --help
+          Pop-Location
