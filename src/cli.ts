@@ -6,7 +6,7 @@
  * 丢了它，装好的包用 npx 跑会报 SyntaxError: invalid character '#'。
  * 仅用 ESM import——项目是 "type": "module"，CJS 的导入语法会直接崩。
  */
-import { parseArgs, helpText } from './cli-args.js'
+import { parseArgs, helpText, cliOptionsToEnv } from './cli-args.js'
 import { loadConfig } from './config.js'
 import { createWebBridge } from './transports/deepseek-web.js'
 import { detectWindowsChrome, chromeNotFoundMessage, windowsChromeCandidates } from './transports/chrome-detect.js'
@@ -24,16 +24,12 @@ function sleep(ms: number): Promise<void> {
 }
 
 function applyFlags(o: ReturnType<typeof parseArgs>): ReturnType<typeof loadConfig> {
-  // flag 优先于 env：命令行是更近的一层意图。
-  const env = { ...process.env }
-  if (o.port !== undefined) env.PORT = String(o.port)
-  if (o.verbose) env.LOG_LEVEL = 'debug'
+  const env = cliOptionsToEnv(o)
   const config = loadConfig(env)
   if (o.profile) config.browser.profileDir = o.profile
   if (o.headless) config.browser.headless = true
   // poolSize 本版本只解析不实现并发池；显式留口说明，避免读者以为漏了。
   void o.poolSize
-  void o.chromePath
   return config
 }
 
@@ -110,7 +106,7 @@ async function main(): Promise<void> {
     console.log('[brain] profile 已播种，跳过登录等待；Chrome 将在首个请求时启动')
   }
 
-  await startShim()
+  await startShim(process.env, config)
 }
 
 main().catch(e => { console.error('[brain] fatal:', e); process.exit(1) })

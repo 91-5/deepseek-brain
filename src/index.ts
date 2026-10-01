@@ -24,9 +24,14 @@ import { createWebBridge } from './transports/deepseek-web.js'
  *
  * 故意不做成顶层副作用——调用方（CLI）需要决定何时启动、以及是否要处理
  * 首次登录的阻塞等待（见 spec §6.1）。
+ *
+ * config 允许外部传入：CLI 已经把 flag 解析成 config（--profile/--headless/--chrome-path
+ * 都在里面），这里再 loadConfig(process.env) 等于把它们全丢掉、重新按 env 猜一遍。
  */
-export async function startShim(env: Record<string, string | undefined> = process.env): Promise<void> {
-  const config = loadConfig(env)
+export async function startShim(
+  env: Record<string, string | undefined> = process.env,
+  config: AppConfig = loadConfig(env),
+): Promise<void> {
   const bridge = createWebBridge(config)
   setTransportGetter(() => bridge)
   /**

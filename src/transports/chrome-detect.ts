@@ -39,3 +39,15 @@ export function chromeNotFoundMessage(candidates: string[]): string {
     ...candidates.map(c => `  - ${c}`),
   ].join('\n')
 }
+
+/**
+ * bridge 启动时要用的可执行文件：显式值（--chrome-path / config.browser.executablePath）优先。
+ *
+ * 显式值也要过 existsSync——**复用 detectWindowsChrome 而不是自己再写一遍判据**，
+ * 否则「CLI 早失败探测说存在、bridge 启动时说不存在」这种两套真相迟早出现。
+ * 与探测的唯一差别就是优先级，不是校验强度。
+ */
+export function resolveChromeExecutable(explicit: string | undefined, env: Record<string, string | undefined> = process.env): string | null {
+  if (explicit) return detectWindowsChrome({ CHROME_PATH: explicit })
+  return detectWindowsChrome(env)
+}

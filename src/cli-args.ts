@@ -92,3 +92,22 @@ function parsePoolSize(raw: string): number {
   if (!/^-?\d+$/.test(raw)) throw new Error(`--pool-size 需要一个整数，收到 "${raw}"`)
   return Math.max(1, Number(raw))
 }
+
+/**
+ * flag → env 覆盖表。**flag 优先于 env**：命令行是更近的一层意图。
+ *
+ * 单独抽成纯函数是为了可测：cli.ts 在模块顶层就 main()，没法 import 它来测映射。
+ * 返回新对象，不改传入的 base。
+ */
+export function cliOptionsToEnv(
+  o: CliOptions,
+  base: Record<string, string | undefined> = process.env,
+): Record<string, string | undefined> {
+  const env = { ...base }
+  if (o.port !== undefined) env.PORT = String(o.port)
+  if (o.verbose) env.LOG_LEVEL = 'debug'
+  // --chrome-path 必须落进 env：早失败探测和 bridge 真正的启动都读它，
+  // 只在 CLI 里拿来看一眼等于用户指定的浏览器被无声忽略。
+  if (o.chromePath) env.CHROME_PATH = o.chromePath
+  return env
+}
