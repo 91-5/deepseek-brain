@@ -1,5 +1,5 @@
 import puppeteer from 'puppeteer-core'
-import { bucketSSE } from '../dist/transport/web-bridge.js'
+import { bucketSSE } from '../dist/transports/deepseek-web.js'
 
 const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null })
 const pages = await browser.pages()

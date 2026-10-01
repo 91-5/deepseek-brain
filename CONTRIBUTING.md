@@ -144,7 +144,7 @@ npm test
 
 - [ ] `npm run typecheck` 通过
 - [ ] `npm run typecheck:test` 通过
-- [ ] `npm test` 通过（`162 passed / 1 skipped` 是当前基线；live 测试保持跳过）
+- [ ] `npm test` 通过（`183 passed / 1 skipped` 是当前基线；live 测试保持跳过）
 - [ ] 没有改动 `tests/fixtures/` 下的真实 SSE 抓包文件（它们是回归基准，不是普通测试数据）
 - [ ] 新增/修改的代码有对应用例，且**至少做过一次反向验证**：
       手动把实现改坏，确认对应测试真的会红，再改回来

@@ -49,20 +49,15 @@ assignees: ''
 ## 5. health 输出（必填）
 
 <!--
-HTTP 服务目前**没有**暴露 `/health` 端点（只有 `/v1/models` 与
-`/v1/chat/completions`）。请贴下面任一来源的输出：
+服务暴露只读 GET /health（不触发 Chrome 启动），直接贴响应 JSON：
 
-方案 A —— 启动日志里的一行：
+    curl.exe -s http://127.0.0.1:8790/health
+    # → { "status": "ok", "loggedIn": true }
+
+若服务没起来、拿不到该端点，就贴启动日志里这几行：
     [brain] browser: <chrome 路径>
     [brain] profile 已播种，跳过登录等待；Chrome 将在首个请求时启动
-    [brain] shim starting (lazy: Chrome launches on first request)
     [brain] shim listening on http://127.0.0.1:8790/v1
-
-方案 B —— 直接看 health 状态（会真的拉起 Chrome）：
-    npm run build && node scripts/smoke.mjs
-    # 输出里的 health: { status: '...', loggedIn: ... }
-
-如果你的版本已经提供 HTTP `/health` 端点，直接贴它的响应 JSON 即可。
 -->
 
     health: <粘贴>
