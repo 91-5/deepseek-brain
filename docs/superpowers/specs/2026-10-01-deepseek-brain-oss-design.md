@@ -21,7 +21,7 @@ v0.1.0 是一个个人工具：Node 24 + TypeScript 本地 shim，通过 CDP 驱
 - DeepSeek 网页版作为**唯一** transport
 - 三层解耦：`core/`（transport 无关、可复用）→ `transports/deepseek-web.ts`（唯一 DeepSeek 专属代码）→ `server/`（OpenAI 兼容 HTTP）
 - `core` 以 npm subpath 导出，别人可以只拿协议内核接自己的哑模型后端
-- 跨平台配置化（Linux / macOS / Windows）
+- Windows 支持与配置化（**仅 Windows**）
 - 主流 agent 的接入文档
 
 **明确不做（YAGNI）**
@@ -118,7 +118,9 @@ interface Transport {
 
 纯机械重构，行为不变。测试文件随源文件同步改名，`tests/` 数量不减。
 
-## 5. 跨平台配置化（发布阻断级）
+## 5. Windows 支持与配置化
+
+> **范围决定（2026-10-01）**：仅支持 Windows，Linux / macOS 不做。代价是受众受限（GitHub 开发者基数以 macOS/Linux 为主）——这是受众决策而非风险决策。收益是跨平台探测、snap/Flatpak 路径、`~/Applications`、无显示器远程场景全部不需要实现。
 
 ### 5.1 必须删除的两处个人资产
 
@@ -138,30 +140,33 @@ console.log('[web-bridge] copied Nuphus profile (login reused)')
 
 每次启动把作者个人的 Nuphus 浏览器 profile 整个复制进工作目录当登录态。这不是路径问题，是**把作者的个人浏览器数据当实现机制**——别人机器上不存在该目录，开源必须彻底删除，改为 §6 的文档化手动登录。
 
-### 5.2 Chrome 探测
+### 5.2 Chrome 探测（Windows only）
 
-- `CHROME_PATH` / `--chrome-path` 优先
-- 否则按平台探测（第二轮评审补齐的漏项）：
+- `CHROME_PATH` env / `--chrome-path` 优先
+- 否则按序探测：
 
-| 平台 | 候选 |
+| 优先级 | 路径 |
 |---|---|
-| Linux | `google-chrome`, `google-chrome-stable`, `chromium`, `chromium-browser`, `/snap/bin/chromium`, Flatpak export 路径 |
-| macOS | `/Applications/Google Chrome.app/...`, `~/Applications/Google Chrome.app/...`, Chromium, Chrome Canary, Edge |
-| Windows | `%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe`（per-user 为主）, `%PROGRAMFILES%\...`, `%PROGRAMFILES(X86)%\...`, Edge |
+| 1 | `%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe`（per-user 安装为主） |
+| 2 | `%PROGRAMFILES%\Google\Chrome\Application\chrome.exe` |
+| 3 | `%PROGRAMFILES(X86)%\Google\Chrome\Application\chrome.exe` |
+| 4 | `%PROGRAMFILES(X86)%\Microsoft\Edge\Application\msedge.exe` |
+| 5 | `%LOCALAPPDATA%\Chromium\Application\chrome.exe` |
 
-- 全部未命中 → **server 启动时**明确报错并打印各平台候选清单，不做静默 fallback
-- 启动时打印探测到的 Chrome 版本
+- 全部未命中 → **server 启动时**明确报错并打印上表，不做静默 fallback
+- 启动时打印探测到的浏览器版本与路径
 
 ### 5.3 版本兼容
 
-- README 声明最低 Chrome / Chromium 版本（以 `puppeteer-core` 24.x 的 CDP 依赖为准，开工时实测确定）
-- `package.json` 固定 `puppeteer-core` 版本；不使用 `^` 漂移，因为 CDP 方法缺失会在运行时才炸
+- README 声明最低 Windows Chrome 版本（以 `puppeteer-core` 24.x 的 CDP 依赖为准，开工时实测确定）
+- `package.json` 固定 `puppeteer-core` 版本，**不用 `^`**——CDP 方法缺失只在运行时炸，漂移不可接受
+- `package.json` 声明 `"os": ["win32"]`：非 Windows 上 npm 安装时即给明确提示，而非装完运行时报看不懂的错
 
 ### 5.4 profile
 
 - CLI `--profile` > `BRAIN_PROFILE` env > `path.join(os.homedir(), '.deepseek-brain', 'profile')`
-- 明确文档化：**不要指向用户日常 Chrome 的 profile**（Chrome 单实例锁会导致连不上）
-- 启动时检测 profile 是否被占用并给出可操作提示
+- 明确文档化：**不要指向用户日常 Chrome 的 profile**——Chrome 单实例锁会导致连不上
+- 启动时检测 profile 被占用并给出可操作提示
 
 ### 5.5 探测时机 vs 懒启动（消解评审指出的矛盾）
 
@@ -170,9 +175,11 @@ console.log('[web-bridge] copied Nuphus profile (login reused)')
 
 两者不冲突：探测是 `fs.existsSync`，拉起是 `spawn`。
 
-### 5.6 远程 / 无显示器场景
+### 5.6 Windows 特有的坑（写进 README 与 e2e-checklist）
 
-README 需说明：首次登录需要图形界面；无显示器环境可先在有头机器生成 `~/.deepseek-brain/profile` 后拷贝过去。
+- **PowerShell 5.1 按 GBK 解码 UTF-8 输出**：`curl.exe` 的 UTF-8 响应经 PowerShell 字符串层会变成乱码，且不可逆丢失字符（实测一次评审回复丢了 26 个字符）。验证脚本必须用 `curl -o <file>` 让 curl 直接写字节，或全程用 node 处理
+- 验证 JSON 必须用 `node -e` 而非 `Get-Content -Raw | ConvertFrom-Json`——后者对 UTF-8 中文文件会误报未终止字符串
+- `Start-Process -RedirectStandardOutput` 在某些 harness 下报 `ChildProcess.kill` 假错，进程实际存活，需轮询日志确认
 
 ## 6. 默认值与实验开关
 
@@ -275,7 +282,7 @@ README 需说明：首次登录需要图形界面；无显示器环境可先在�
 
 ## 11. 分期
 
-**P0（发布阻断）**：§4 机械重构 → §5 跨平台（含删除 Nuphus 复制机制）→ §6 默认值与登录 UX → §7 打包 → §8 文档 → §9 CI
+**P0（发布阻断）**：§4 机械重构 → §5 Windows 配置化（含删除 Nuphus 复制机制）→ §6 默认值与登录 UX → §7 打包 → §8 文档 → §9 CI
 
 **P1（性能）**：§10 前两项 + 懒启动
 
@@ -284,7 +291,7 @@ README 需说明：首次登录需要图形界面；无显示器环境可先在�
 「能构建」≠「能跑」。构建是 CI 层面，运行是 e2e。真正的发布 gate 是**陌生人验证**。
 
 1. private repo → 内部 dogfood（作者自测全链路）
-2. **陌生人 + 干净机器 + 只读 README**：找一名未参与开发的人，在干净机器上从 `git clone` 到首次成功请求，**全程只按 README、不改代码**。至少覆盖 Linux 与 macOS 各一台。这一步能在 30 分钟内暴露 80% 的「第一次跑不起来」问题
+2. **陌生人 + 干净 Windows 机器 + 只读 README**：找一名未参与开发的人，在干净的 Windows 机器上从 `git clone` 到首次成功请求，**全程只按 README、不改代码**。这一步能在 30 分钟内暴露 80% 的「第一次跑不起来」问题
 3. 按发现的问题修一轮
 4. public repo（**先不发 npm**），让人用 `npm install github:you/deepseek-brain` 或 `npx github:...` 验证
 5. 第二批陌生人从 GitHub 装，再修一轮
@@ -301,7 +308,7 @@ README 需说明：首次登录需要图形界面；无显示器环境可先在�
 |---|---|
 | DeepSeek 前端改版 / 反自动化升级，选择器全挂 | 选择器集中在 `selectors.json` 便于 PR；`/health` 端点；DOM 快照日志；README 声明随时可能失效 |
 | 变成「只有作者能跑的脚本」 | core 干净可独立测试；CI 自动化；CONTRIBUTING 写清「如何加 transport」 |
-| Windows-only（硬编码路径） | §5 跨平台配置化 |
+| 硬编码个人路径，别人 clone 即崩 | §5 Windows 配置化 |
 
 ## 13. 决策记录
 
@@ -323,3 +330,4 @@ README 需说明：首次登录需要图形界面；无显示器环境可先在�
 1. **模块格式：ESM-only**。项目已是 `"type": "module"` + tsc 直出 + 无打包器，不引入 CJS 双出。`exports` 用条件导出（`types` / `default`），并显式导出 `"./package.json"`
 2. **首次登录 UX：首次运行阻塞等登录**。有 profile 则立即监听；无 profile 则弹 Chrome 阻塞等待，检测到登录完成再监听端口。与懒启动不冲突
 3. **ToS 披露：照办**。README 顶部独立 ToS 风险段落，与「非官方声明」并列
+4. **平台范围：仅 Windows**。Linux / macOS 不做。`package.json` 加 `"os": ["win32"]` 让错误在安装期暴露。诚实代价：受众受限，GitHub 开发者基数以 macOS/Linux 为主
