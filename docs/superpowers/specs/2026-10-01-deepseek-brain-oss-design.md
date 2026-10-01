@@ -54,7 +54,29 @@ v0.1.0 是一个个人工具：Node 24 + TypeScript 本地 shim，通过 CDP 驱
 - `core/` 的 `package.json` exports 段**不拖 `puppeteer-core`**，只有 `server/` 与 `transports/` 依赖它
 - CI 有一条检查：若 `core/` 出现对 `transports/` 或 `puppeteer-core` 的 import，测试失败
 
-> 说明：外部评审曾指出「core 依赖 transport 所以边界糊」。本设计明确采用依赖倒置——依赖接口不依赖实现——因此不把 `session/`、`compaction/` 移出 core，而是补强 import 方向的静态检查。
+### 3.1.1 core 允许 / 禁止清单
+
+依赖倒置只保证**依赖方向**，不保证**模块内聚**——core 里仍可能藏着 transport 假设。因此除 import 检查外，core 有如下硬约束：
+
+**必须参数化（禁止魔法数）**
+
+| 当前值 | 位置 | 改为 |
+|---|---|---|
+| `compactTokenThreshold: 40000` | `config.ts:26` | 默认值取自 `transport.getCapabilities().maxContextTokens`；config 降级为覆盖手段而非定义处 |
+| chars/4 的 token 估算系数 | `session/manager.ts` `estimateTokens` | 由 `getCapabilities().tokenEstimator` 提供，默认实现可留 core |
+
+**必须接口化（可替换策略）**
+
+- `SessionKeyStrategy` — 现有「消息前缀 hash」策略隐含假设「transport 支持用前缀复用会话」。无状态后端（每次调用独立）根本没有 session 概念，必须能替换。默认实现放 core，但不是唯一路径
+- `SessionStore` — 现有 `session/store.ts` 直接 `fs` 读写 `.sessions.json`，无接口。测试替身与用户自定义存储需要它
+
+**禁止出现在 core**
+
+DeepSeek URL、选择器字符串、任何站点特定常量、`puppeteer-core`、以及绕过 `SessionStore` / `LogSink` 的 Node fs 直呼。
+
+> 落地方式：一条 lint 规则 + code review checklist。CI 的 import 检查只能抓显式 `import`，抓不到硬编码常量与假设耦合——这是第二轮评审明确指出的缺口。
+
+> 说明：外部评审曾指出「core 依赖 transport 所以边界糊」。本设计明确采用依赖倒置——依赖接口不依赖实现——因此不把 `session/`、`compaction/` 移出 core，而是补强上述约束。
 
 ### 3.2 对外 core API
 
@@ -98,20 +120,59 @@ interface Transport {
 
 ## 5. 跨平台配置化（发布阻断级）
 
-必须删除的硬编码（`web-bridge.ts:17-18`）：
+### 5.1 必须删除的两处个人资产
+
+**① 硬编码路径**（`web-bridge.ts:17-18`）
 
 ```ts
 const CHROME = process.env.CHROME_PATH ?? 'C:\\Users\\15812\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe'
 const NUPHUS_PROFILE = path.join(os.homedir(), 'AppData', 'Roaming', 'Nuphus', 'browser_profile_v2')
 ```
 
-改为：
+**② `ensureProfileDir()` 的登录态复制机制**（`web-bridge.ts:199-204`）
 
-- `CHROME_PATH` 环境变量优先
-- 否则按平台自动探测候选路径（Linux: `which google-chrome` / `chromium`；macOS: `/Applications/Google Chrome.app/...`；Windows: `%LOCALAPPDATA%` 与 `%PROGRAMFILES%`）
-- 都找不到则启动时明确报错并打印各平台候选路径清单，**不做静默 fallback**
-- profile 目录：CLI `--profile` 参数 > `BRAIN_PROFILE` env > `path.join(os.homedir(), '.deepseek-brain', 'profile')`
-- **移除了对 Nuphus profile 的依赖**——那是作者机器的私有产物，别人没有
+```ts
+fs.cpSync(NUPHUS_PROFILE, dest, { recursive: true, errorOnExist: false })
+console.log('[web-bridge] copied Nuphus profile (login reused)')
+```
+
+每次启动把作者个人的 Nuphus 浏览器 profile 整个复制进工作目录当登录态。这不是路径问题，是**把作者的个人浏览器数据当实现机制**——别人机器上不存在该目录，开源必须彻底删除，改为 §6 的文档化手动登录。
+
+### 5.2 Chrome 探测
+
+- `CHROME_PATH` / `--chrome-path` 优先
+- 否则按平台探测（第二轮评审补齐的漏项）：
+
+| 平台 | 候选 |
+|---|---|
+| Linux | `google-chrome`, `google-chrome-stable`, `chromium`, `chromium-browser`, `/snap/bin/chromium`, Flatpak export 路径 |
+| macOS | `/Applications/Google Chrome.app/...`, `~/Applications/Google Chrome.app/...`, Chromium, Chrome Canary, Edge |
+| Windows | `%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe`（per-user 为主）, `%PROGRAMFILES%\...`, `%PROGRAMFILES(X86)%\...`, Edge |
+
+- 全部未命中 → **server 启动时**明确报错并打印各平台候选清单，不做静默 fallback
+- 启动时打印探测到的 Chrome 版本
+
+### 5.3 版本兼容
+
+- README 声明最低 Chrome / Chromium 版本（以 `puppeteer-core` 24.x 的 CDP 依赖为准，开工时实测确定）
+- `package.json` 固定 `puppeteer-core` 版本；不使用 `^` 漂移，因为 CDP 方法缺失会在运行时才炸
+
+### 5.4 profile
+
+- CLI `--profile` > `BRAIN_PROFILE` env > `path.join(os.homedir(), '.deepseek-brain', 'profile')`
+- 明确文档化：**不要指向用户日常 Chrome 的 profile**（Chrome 单实例锁会导致连不上）
+- 启动时检测 profile 是否被占用并给出可操作提示
+
+### 5.5 探测时机 vs 懒启动（消解评审指出的矛盾）
+
+- **探测在 server 启动时**做——早失败，让配置错误立刻暴露
+- **Chrome 进程在首次请求时**拉起——省常驻资源
+
+两者不冲突：探测是 `fs.existsSync`，拉起是 `spawn`。
+
+### 5.6 远程 / 无显示器场景
+
+README 需说明：首次登录需要图形界面；无显示器环境可先在有头机器生成 `~/.deepseek-brain/profile` 后拷贝过去。
 
 ## 6. 默认值与实验开关
 
@@ -122,6 +183,17 @@ const NUPHUS_PROFILE = path.join(os.homedir(), 'AppData', 'Roaming', 'Nuphus', '
 | 登录 | 首次运行需在弹出的 Chrome 手动登录 | profile 持久化，后续重启自动恢复 |
 
 这两个开关存在的理由是「默认开启会功能失败」，不是风险规避。
+
+**诚实陈述（第二轮评审纠正）**：默认关并发与 headless 同时也降低了风控暴露面——单账号多并发是自动化最明显的特征之一。两条理由**独立成立，任一都足以支持默认关**：① 技术：headless 会被站点当场拒绝，并发导致会话互扰与 sentCount 串台；② 合规：并发是自动化最明显特征，默认关降低 ToS 风险。
+
+### 6.1 首次登录 UX（已拍板：阻塞等登录）
+
+评审指出懒启动与登录流程矛盾：Chrome 首次请求才拉起，此时用户手动登录，**请求早已超时**。解法：
+
+- 有 profile 且检测到已登录 → 立即监听端口
+- 无 profile / 未登录 → 启动 Chrome 并**阻塞等待登录完成**，检测到登录态后才开始监听，并打印「等待登录中…完成后自动继续」
+- 登录态检测：`health()` 返回值增加 `loggedIn: boolean`，检测方式（DOM 元素 / cookie / URL 判据）实现时确定并写入 spec 附录
+- 提供 `deepseek-brain login` 子命令，供已运行中的实例主动触发登录流程
 
 ## 7. 打包与分发
 
@@ -142,7 +214,30 @@ const NUPHUS_PROFILE = path.join(os.homedir(), 'AppData', 'Roaming', 'Nuphus', '
 
 去掉 `private: true`。依赖版本用 lockfile 固定（`npm ci` 供贡献者复现）。
 
-`cli.js` 参数：`--port --profile --chrome-path --pool-size --headless --verbose`
+**模块格式：ESM-only**（2026-10-01 拍板）。项目已是 `"type": "module"` + tsc 直出 + 无打包器，不引入 CJS 双出，因此无需打包器，`exports` 不写 `import`/`require` 双条件。
+
+### 7.1 bin 入口的三个必做项
+
+1. **`src/cli.ts` 首行必须是 `#!/usr/bin/env node`**——tsc 不会自动加 shebang 也不会 chmod。构建后需实测 `dist/cli.js` 首行保留
+2. **cli.ts 只用 ESM import**，不得出现 `require`
+3. **CI 必须实测打包链路**：`npm pack` → 安装 tarball 到临时目录 → `npx deepseek-brain --help`。只跑 `build` 不能证明 bin 可用——shebang 丢失时报 `Permission denied` 或 `SyntaxError: invalid character`
+
+### 7.2 exports 用条件导出
+
+字符串形式会让 TS 用户拿不到类型声明，IDE 报「找不到类型声明」：
+
+```json
+"exports": {
+  ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+  "./core": { "types": "./dist/core/index.d.ts", "default": "./dist/core/index.js" },
+  "./package.json": "./package.json"
+}
+```
+
+- `"./package.json"` **必须显式导出**，否则 vite 等 bundler 与部分工具读不到（经典坑）
+- `tsconfig` 开 `declaration: true`，并实测 `dist/core/index.d.ts` 真的产出（core 的 `types.ts` 只导出类型，须 re-export 到 `core/index.d.ts`）
+
+`cli.js` 参数：`--port --profile --chrome-path --pool-size --headless --verbose`，另加 §6.1 的 `login` 子命令。
 
 ## 8. 文档与社区文件
 
@@ -153,7 +248,12 @@ const NUPHUS_PROFILE = path.join(os.homedir(), 'AppData', 'Roaming', 'Nuphus', '
 
 ### 免责声明的真实理由
 
-保留免责与「非 DeepSeek 官方项目」声明，理由不是规避责任，而是**防止商标关联误解**——npm 包名叫 `deepseek-brain` 会被默认理解为官方项目。
+保留两件独立的事，第二轮评审指出合并成一句属于**误导性披露**：
+
+1. **非官方声明**（防商标关联误解）——npm 包名叫 `deepseek-brain` 会被默认理解为官方项目
+2. **ToS 风险段落**（防风险误解）——措辞直白：*本项目通过自动化驱动网页版，可能违反 DeepSeek 服务条款，可能导致账号被限制或封禁，风险自负*
+
+第 2 条与「风险自负」的立场不冲突：用户要自己解决风险，前提是先知道风险是什么。只写「可能跑不通」而漏「可能账号没了」，用户会误判。
 
 ## 9. 测试与 CI
 
@@ -175,11 +275,25 @@ const NUPHUS_PROFILE = path.join(os.homedir(), 'AppData', 'Roaming', 'Nuphus', '
 
 ## 11. 分期
 
-**P0（发布阻断）**：§4 机械重构 → §5 跨平台 → §6 默认值 → §7 打包 → §8 文档 → §9 CI
+**P0（发布阻断）**：§4 机械重构 → §5 跨平台（含删除 Nuphus 复制机制）→ §6 默认值与登录 UX → §7 打包 → §8 文档 → §9 CI
 
 **P1（性能）**：§10 前两项 + 懒启动
 
-**发布流程**：P0 完成后先在私有远端跑通，确认 Linux 至少能构建，再转 public。版本策略——网页端一改就崩，主版本号要敢跳。
+**发布流程**（第二轮评审补强，原版缺了最关键一步）
+
+「能构建」≠「能跑」。构建是 CI 层面，运行是 e2e。真正的发布 gate 是**陌生人验证**。
+
+1. private repo → 内部 dogfood（作者自测全链路）
+2. **陌生人 + 干净机器 + 只读 README**：找一名未参与开发的人，在干净机器上从 `git clone` 到首次成功请求，**全程只按 README、不改代码**。至少覆盖 Linux 与 macOS 各一台。这一步能在 30 分钟内暴露 80% 的「第一次跑不起来」问题
+3. 按发现的问题修一轮
+4. public repo（**先不发 npm**），让人用 `npm install github:you/deepseek-brain` 或 `npx github:...` 验证
+5. 第二批陌生人从 GitHub 装，再修一轮
+6. npm 发 `0.2.0-beta.1`（GitHub prerelease + tag），收集 issue 修一轮
+7. npm 发 `0.2.0`
+
+补充：npm 包名一旦发布难以收回（unpublish 有 72 小时限制与污染问题），故 npm 晚于 public repo。转 public 前准备好「已知问题」置顶 issue 与快速 patch 流程。
+
+**版本策略**：网页端一改就崩，主版本号要敢跳。
 
 ## 12. 已识别的死因与最小预防
 
@@ -194,4 +308,18 @@ const NUPHUS_PROFILE = path.join(os.homedir(), 'AppData', 'Roaming', 'Nuphus', '
 - **2026-10-01 评审采纳**：`Transport` 补 `cancel` / `getCapabilities`；跨平台列为发布阻断级；社区文件全套；headless 与并发降为默认关的实验开关
 - **2026-10-01 评审驳回**：「core 依赖 transport 故边界糊」——采用依赖倒置解释，不把 `session/`、`compaction/` 移出 core，改为加静态 import 检查
 - **2026-10-01 sir 定调**：风险披露到 README 即可，不做过度保守设计；只保留「非官方声明」以防商标关联误解
-- **现场发现**：DeepSeek 在无 `tools[]` 时主动拒绝编造工具名（"任何工具名都是我编造的"），是文本协议反幻觉约束有效的证据，值得写进 README
+- **2026-10-01 现场发现**：DeepSeek 在无 `tools[]` 时主动拒绝编造工具名（"任何工具名都是我编造的"），是文本协议反幻觉约束有效的证据，值得写进 README
+
+### 第二轮评审（对 spec 草案，DeepSeek，6403 tokens）
+
+- **接受**不把 session/compaction 移出 core，但**驳回「CI import 检查就够了」**：DIP 只管依赖方向，不管模块内聚。补 `SessionKeyStrategy` / `SessionStore` 接口化 + core 禁 transport 特定常量
+- **修正**：40K 阈值实际在 `config.ts:26` 且已支持 `COMPACT_THRESHOLD` env，非「硬编码在 core」；但默认值的深层问题成立——应来自 `getCapabilities().maxContextTokens`
+- **采纳发布流程补强**：spec 缺「陌生人 + 干净机器 + 只读 README」这一步，这是比任何技术细节都更容易翻车的地方
+- **超出评审的发现**：`web-bridge.ts:200` 每次启动把作者个人的 Nuphus 浏览器 profile 整个 `cpSync` 进工作目录当登录态（日志 `copied Nuphus profile (login reused)`）。这不是路径问题，是把作者个人数据当实现机制，开源必须彻底删除
+- **接受其对我动机的质疑**：默认关并发/headless 不只是技术原因，也客观降低了风控暴露面。spec 已改为两条并列陈述，不再声称「非风险规避」
+
+### 已拍板的三个前置决策（2026-10-01）
+
+1. **模块格式：ESM-only**。项目已是 `"type": "module"` + tsc 直出 + 无打包器，不引入 CJS 双出。`exports` 用条件导出（`types` / `default`），并显式导出 `"./package.json"`
+2. **首次登录 UX：首次运行阻塞等登录**。有 profile 则立即监听；无 profile 则弹 Chrome 阻塞等待，检测到登录完成再监听端口。与懒启动不冲突
+3. **ToS 披露：照办**。README 顶部独立 ToS 风险段落，与「非官方声明」并列
