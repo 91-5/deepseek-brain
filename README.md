@@ -33,7 +33,7 @@
 **方式一：Git 安装（当前推荐，无需 npm 账号/registry）**
 
 ```bash
-# 全局安装（npm 会克隆仓库并自动构建）：
+# 全局安装（dist 已预构建，无需本地编译）：
 npm install -g github:91-5/-deepseek-brain#v0.2.0
 
 # 或者不装直接跑：

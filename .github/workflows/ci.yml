@@ -30,6 +30,10 @@ jobs:
       - name: build
         run: npm run build
 
+      # dist 已提交进仓库（git 安装模式免编译），此步防止产物与源码脱节
+      - name: verify dist is in sync with src
+        run: git diff --exit-code -- dist
+
       - name: verify bin shebang survived compilation
         run: node -e "const s=require('fs').readFileSync('dist/cli.js','utf8');if(!s.startsWith('#!/usr/bin/env node')){console.error('SHEBANG LOST');process.exit(1)}console.log('SHEBANG OK')"
 
