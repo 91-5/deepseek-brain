@@ -8,6 +8,9 @@
 
 **Windows only。** `package.json` 声明了 `os: ["win32"]`，非 Windows 平台安装时即被拒绝。
 
+> 📋 `.tasks/` 与 `verdicts/` 是 v0.2.0 的开发过程评审记录，**不是项目运行所需**，
+> 不进 npm 包。想知道 v0.2.0 经历了什么评审、留下了哪些问题 —— 见 [`.tasks/README.md`](.tasks/README.md)。
+
 ---
 
 ## 特性
@@ -34,10 +37,10 @@
 
 ```bash
 # 全局安装（dist 已预构建，无需本地编译）：
-npm install -g github:91-5/-deepseek-brain#v0.2.0
+npm install -g github:91-5/deepseek-brain#v0.2.0
 
 # 或者不装直接跑：
-npx github:91-5/-deepseek-brain#v0.2.0
+npx github:91-5/deepseek-brain#v0.2.0
 ```
 
 > 仓库名含前导连字符是刻意的，命令里照抄即可。安装走的是 GitHub 而非 npm registry，国内网络通常可直接使用。
