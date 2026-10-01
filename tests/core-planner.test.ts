@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { runAgentTurn, clampSentCount } from '../src/core/planner.js'
 import type { Transport } from '../src/core/types.js'
 import { loadConfig } from '../src/config.js'
+import { createSessionStore } from '../src/core/session/store.js'
+import { computeSessionKey } from '../src/core/session/manager.js'
 import type { OpenAIMessage, ToolSpec } from '../src/types.js'
 
 const TOOLS: ToolSpec[] = [{ name: 'read_file', description: '读', parameters: {} }]
@@ -104,10 +106,73 @@ describe('toolNameMap/clampSentCount 边界', () => {
     expect(t.prompts[0]).toContain('回退后的新问题')
     expect(t.prompts[0]).not.toContain('第一问')
   })
-  it('clampSentCount：正常值不动、无 user 时取全长', () => {
+it('clampSentCount：正常值不动、无 user 时取全长', () => {
     expect(clampSentCount(1, [{ role: 'user', content: 'a' }, { role: 'assistant', content: 'b' }, { role: 'user', content: 'c' }])).toBe(1)
     expect(clampSentCount(99, [{ role: 'user', content: 'a' }, { role: 'assistant', content: 'b' }, { role: 'user', content: 'c' }])).toBe(2)
     expect(clampSentCount(0, [{ role: 'user', content: 'a' }])).toBe(0)
     expect(clampSentCount(5, [{ role: 'assistant', content: 'a' }, { role: 'assistant', content: 'b' }])).toBe(2)
+  })
+})
+
+// 阈值链：deps.threshold > COMPACT_THRESHOLD env > config 默认 40000。
+// env 那一腿由 loadConfig 读进 config.compactTokenThreshold，所以 planner 侧
+// 只需 deps.threshold ?? config.compactTokenThreshold 一处表达式即可覆盖整条链。
+describe('compaction 阈值优先级', () => {
+  const small: OpenAIMessage[] = [{ role: 'user', content: 'x'.repeat(200) }] // ≈100 估算 token
+
+  function compactsUnder(threshold: number | undefined, config: ReturnType<typeof loadConfig>): Promise<boolean> {
+    const t = fakeTransport([[{ content: '摘要内容' }], [{ content: '好' }]])
+    return runAgentTurn({ messages: small, tools: TOOLS, transport: t, config, deps: { threshold } })
+      .then(() => t.prompts.length > 1)
+  }
+
+  it('deps.threshold 生效：调低阈值即触发 compaction', async () => {
+    // cfg 默认 40000，不会触发；注入 10 后必须触发
+    expect(await compactsUnder(10, cfg)).toBe(true)
+  })
+
+  it('deps.threshold 调高到极大值时不再 compaction（默认 40000 本就不触发）', async () => {
+    expect(await compactsUnder(Number.MAX_SAFE_INTEGER, cfg)).toBe(false)
+  })
+
+  it('第 2 腿 COMPACT_THRESHOLD env 生效（经 loadConfig 注入）', async () => {
+    const envCfg = loadConfig({ COMPACT_THRESHOLD: '10' })
+    expect(envCfg.compactTokenThreshold).toBe(10)
+    expect(await compactsUnder(undefined, envCfg)).toBe(true)
+  })
+
+  it('第 3 腿 config 默认值仍是 40000（不得改成 maxContextTokens=64000）', () => {
+    expect(cfg.compactTokenThreshold).toBe(40000)
+    expect(loadConfig({}).compactTokenThreshold).toBe(40000)
+    expect(loadConfig({ COMPACT_THRESHOLD: '' }).compactTokenThreshold).toBe(40000)
+  })
+
+  it('deps.threshold 优先于 env：env=10 但 deps=99999 时不触发', async () => {
+    const envCfg = loadConfig({ COMPACT_THRESHOLD: '10' })
+    expect(await compactsUnder(Number.MAX_SAFE_INTEGER, envCfg)).toBe(false)
+  })
+})
+
+// 注入点本身：store 与 keyStrategy 接管后，planner 不再读 env / 不再用内置哈希
+describe('PlannerDeps 注入', () => {
+  it('deps.store 接管会话表，keyStrategy 决定落库用的 key', async () => {
+    const store = createSessionStore(null)
+    const t = fakeTransport([[{ content: '答' }]])
+    await runAgentTurn({
+      messages: baseMsgs,
+      tools: TOOLS,
+      transport: t,
+      config: cfg,
+      deps: { store, keyStrategy: () => 'my-key' },
+    })
+    expect(store.get('my-key')).toMatchObject({ chatSessionId: 'sess-1' })
+    expect(store.keys()).toEqual(['my-key'])
+  })
+
+  it('不传 deps 时默认策略与存量 key 语义一致（prefix 哈希）', async () => {
+    const store = createSessionStore(null)
+    const t = fakeTransport([[{ content: '答' }]])
+    await runAgentTurn({ messages: baseMsgs, tools: TOOLS, transport: t, config: cfg, deps: { store } })
+    expect(store.get(computeSessionKey(baseMsgs))).toMatchObject({ chatSessionId: 'sess-1' })
   })
 })

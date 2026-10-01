@@ -4,8 +4,10 @@ import { buildSystemPrompt } from './protocol/system-prompt.js'
 import { parseModelOutput } from './protocol/parser.js'
 import { renderToolResult } from './protocol/tool-result.js'
 import type { Transport } from './types.js'
-import { computeSessionKey, newMessagesSince } from './session/manager.js'
-import { createSessionStore, DEFAULT_SESSIONS_FILE, type SessionRecord, type SessionStore } from './session/store.js'
+import { newMessagesSince } from './session/manager.js'
+import { openDefaultSessionStore, type SessionRecord, type SessionStore } from './session/store.js'
+import type { SessionKeyStrategy } from './session/strategy.js'
+import { prefixHashStrategy } from './session/strategy.js'
 import { buildCompactPrompt, totalTokens } from './compaction/index.js'
 
 const FENCE_OPEN = '```tool_call'
@@ -17,14 +19,18 @@ export class FormatGiveUpError extends Error {
 }
 
 /**
- * 会话表入口：每次调用按 env 新建 store 并从 .sessions.json hydration——
- * 进程重启后「OpenCode 会话 key → DeepSeek 会话」的映射不丢（绑定要求，
- * 否则 delta 会跳过历史造成上下文断裂）。
- * NODE_ENV=test（vitest）下退化为纯内存，避免单测污染仓库根。
+ * planner 的可替换依赖。三项全部可选：不传时行为与 v0.1 完全一致
+ * （默认 store 走环境变量、默认 key 策略是前缀哈希、默认阈值走 config）。
+ *
+ * - store：接管会话表存储。不传则每次调用按 env 现开一个默认 store。
+ * - keyStrategy：接管「OpenCode 会话 → 后端会话」的映射规则。
+ *   默认 prefixHashStrategy 与历史 .sessions.json 里的 key 逐位一致。
+ * - threshold：compaction 触发阈值（估算 token 数）。
  */
-function openSessionStore(): SessionStore {
-  if (process.env.NODE_ENV === 'test') return createSessionStore(null)
-  return createSessionStore(process.env.SESSIONS_FILE ?? DEFAULT_SESSIONS_FILE)
+export interface PlannerDeps {
+  store?: SessionStore
+  keyStrategy?: SessionKeyStrategy
+  threshold?: number
 }
 
 export interface TurnResult {
@@ -84,17 +90,34 @@ export async function runAgentTurn(opts: {
   tools: ToolSpec[]
   transport: Transport
   config: AppConfig
+  /** 可选的替换点；不传则全部走与 v0.1 一致的默认路径 */
+  deps?: PlannerDeps
 }): Promise<TurnResult> {
   const { messages, tools, transport, config } = opts
-  const key = computeSessionKey(messages)
-  const sessions = openSessionStore()
+  const deps = opts.deps ?? {}
+  const keyStrategy = deps.keyStrategy ?? prefixHashStrategy
+  const key = keyStrategy(messages)
+  const sessions = deps.store ?? openDefaultSessionStore()
+  /**
+   * compaction 阈值优先级（**不要**改成读 transport.getCapabilities().maxContextTokens）：
+   *   1. deps.threshold        —— 复用方显式注入，最高优先
+   *   2. COMPACT_THRESHOLD env —— 由 loadConfig 读入 config.compactTokenThreshold
+   *   3. config 的默认值 40000  —— v0.1 起未变，行为基线
+   *
+   * 为什么不接 maxContextTokens：那是「模型宣称能吃多少」的**能力信息**，
+   * 由外部知识填写、未经本地实测，且是估算口径的上限而非安全余量。
+   * 若用它当阈值（本项目曾计划如此），触发点会从 4 万推到 6.4 万；
+   * 一旦真实网页版上下文墙低于 64000，就会在撞墙前**不再 compaction、直接溢出**——
+   * 那是行为回归，不是重构。maxContextTokens 仅作为对外暴露的能力信息供第三方参考。
+   */
+  const threshold = deps.threshold ?? config.compactTokenThreshold
   const stored = sessions.get(key) ?? { chatSessionId: null, sentCount: initialSentCount(messages) }
   const entry: SessionRecord = { chatSessionId: stored.chatSessionId, sentCount: clampSentCount(stored.sentCount, messages) }
   const delta = newMessagesSince(messages, entry.sentCount)
     .filter(m => m.role === 'user' || m.role === 'tool')
 
   let sendDelta = delta
-  if (delta.length > 0 && totalTokens(messages) > config.compactTokenThreshold) {
+  if (delta.length > 0 && totalTokens(messages) > threshold) {
     await transport.newChat()
     let summary = ''
     for await (const c of transport.generate({
