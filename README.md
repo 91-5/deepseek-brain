@@ -43,7 +43,7 @@ npm install -g github:91-5/deepseek-brain#v0.2.0
 npx github:91-5/deepseek-brain#v0.2.0
 ```
 
-> 仓库名含前导连字符是刻意的，命令里照抄即可。安装走的是 GitHub 而非 npm registry，国内网络通常可直接使用。
+> 安装走的是 GitHub 而非 npm registry，国内网络通常可直接使用。
 
 **方式二：npm registry（暂未发布）**
 
