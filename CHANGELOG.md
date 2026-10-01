@@ -17,8 +17,14 @@
 - `deepseek-brain login` 子命令：只走登录流程，成功后退出、不监听端口。
 - 首次运行阻塞登录：未检测到登录态时启动阶段阻塞等待，登录完成后才开始
   监听端口，避免客户端拿到一个必然失败的端口。
-- 完整 CLI 参数面：`--port` / `--profile` / `--chrome-path` / `--pool-size` /
-  `--headless` / `--verbose` 与 `serve` / `login` 子命令，坏值一律报错而非静默降级。
+- 完整 CLI 参数面：`--port` / `--profile` / `--chrome-path` / `--headless` /
+  `--verbose` 与 `serve` / `login` 子命令，坏值一律报错而非静默降级。
+  - `--verbose` 有实际作用：等价 `LOG_LEVEL=debug`，打开三处会话恢复诊断
+    （恢复的 chatSessionId / 恢复目标被重定向 / 恢复导航失败）。此前 `LOG_LEVEL`
+    只有一个写入方、零个读取方，该 flag 形同虚设。
+  - `--pool-size` **只解析、不实现**：本版本并发恒为 1。保留该 flag 是为了让想开并发
+    的人得到一句明确的「没实现」，而不是静默串行。
+- `LOG_LEVEL` 环境变量现在真的被读取（此前无人读，`log.level` 恒为 `info`）。
 - Chrome 路径自动探测：装在标准位置时无需任何配置；探测不到会在启动早期
   直接失败并列出候选路径，而不是等首个请求超时。
 - compaction 阈值注入：`deps.threshold` > `COMPACT_THRESHOLD` 环境变量 > 默认

@@ -1,0 +1,48 @@
+// OpenCode 接入 deepseek-brain
+//
+// 状态：✅ 已核实并在本机实跑通过
+// 来源：本机真实可用配置（与本仓库 README 指向的 provider 结构一致）
+// 核实项：provider npm 包名、options 字段名、模型 id 与 agent model 引用格式
+//
+// 放到 OpenCode 的配置文件里：
+//   - 全局：~/.config/opencode/opencode.json（或 %USERPROFILE%\.config\opencode\opencode.json）
+//   - 项目：<project>/opencode.json
+//
+// 三个值全部固定：
+//   baseURL  → http://127.0.0.1:8790/v1
+//   apiKey   → 随便填（shim 不做鉴权，只绑 127.0.0.1）
+//   模型 id  → deepseek-web-brain（/v1/models 固定只返回这一个）
+//
+// ⚠️ 本文件是 .jsonc（允许注释），但 OpenCode 同时接受严格 JSON。
+//    若你的工具链只吃严格 JSON，把所有注释删掉即可，键名一字都不用改。
+
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "provider": {
+    "deepseek-brain": {
+      "name": "deepseek-brain",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "http://127.0.0.1:8790/v1",
+        "apiKey": "local"
+      },
+      "models": {
+        "deepseek-web-brain": {
+          "name": "DeepSeek Web Brain"
+        }
+      }
+    }
+  },
+
+  // 把它挂成 subagent：主 agent 负责执行工具，brain 只负责规划与决策。
+  // 这正是这个 shim 的原始用途——网页版模型没有原生 function calling，
+  // 工具调用由 core/planner.ts 的代码块协议实现。
+  "agent": {
+    "brain": {
+      "mode": "subagent",
+      "model": "deepseek-brain/deepseek-web-brain",
+      "description": "DeepSeek 网页版大脑（deepseek-brain shim 驱动的 subagent；网页版无函数调用，tool_call 走代码块协议，超 40K token 自动压缩续开会话）"
+    }
+  }
+}
