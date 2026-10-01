@@ -3,3 +3,5 @@ dist/
 logs/
 .chrome-profile/
 .sessions.json
+tmp/
+*.tgz
