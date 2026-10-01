@@ -30,6 +30,25 @@ export function createHttpServer(config: AppConfig): http.Server {
     res.on('error', () => {})
     req.on('error', () => {})
     const url = new URL(req.url ?? '/', 'http://localhost')
+    /**
+     * 只读探针。**绝不能触发 Chrome 懒启动**：探活的调用方（OpenCode、重启脚本、
+     * 用户自己 curl）不该把浏览器从被子里拽出来——那正是 Task 6 懒启动的要点。
+     * transport.health() 自己在 page 为 null 时直接返回 login_required，
+     * 不经过 startBridge()/start()，所以这里只做转发，不补任何 start 调用。
+     * transport 还没注入（getter 抛错）也降级成 login_required：
+     * 「还没准备好」是正常状态，不该变成 500 让探针误判服务已挂。
+     */
+    if (req.method === 'GET' && url.pathname === '/health') {
+      let health: { status: string; loggedIn: boolean }
+      try {
+        health = await transportGetter().health()
+      } catch {
+        health = { status: 'login_required', loggedIn: false }
+      }
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(JSON.stringify(health))
+      return
+    }
     if (req.method === 'GET' && url.pathname === '/v1/models') {
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(JSON.stringify({ object: 'list', data: [{ id: 'deepseek-web-brain', object: 'model', created: 0, owned_by: 'deepseek-brain' }] }))
