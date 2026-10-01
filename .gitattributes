@@ -1,0 +1,4 @@
+# 强制所有文本文件以 LF 检出/提交。
+# 原因：Windows CI runner 默认 core.autocrlf=true 会把仓库转成 CRLF，
+# 测试对 fixture 的行锚定匹配与字节比较会因此失败（2026-10-01 首次 CI 实证）。
+* text=auto eol=lf
