@@ -29,9 +29,12 @@ export async function startShim(env: Record<string, string | undefined> = proces
   const config = loadConfig(env)
   const bridge = createWebBridge(config)
   setTransportGetter(() => bridge)
-  await bridge.start()
-  const h = await bridge.health()
-  console.log(`[brain] transport health: ${h.status} (loggedIn=${h.loggedIn})`)
+  /**
+   * (c) 懒启动：**不**在这里 start()。端口先开，Chrome 等首个 generate() 再说。
+   * 强行探测 health() 会把 Chrome 立刻拉起来，懒启动就名存实亡了。
+   * health 的真实状态由首个请求去揭示；登录态由 CLI 在调用前用文件判据把关。
+   */
+  console.log(`[brain] shim starting (lazy: Chrome launches on first request)`)
   return startHttpServer(config)
 }
 

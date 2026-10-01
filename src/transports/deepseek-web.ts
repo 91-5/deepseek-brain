@@ -7,6 +7,7 @@ import type { Browser, Page } from 'puppeteer-core'
 import type { AppConfig } from '../config.js'
 import type { GenerateChunk, Health, Transport, Capabilities } from '../core/types.js'
 import { judgeLoginState, CHAT_INPUT_SELECTOR } from './login-state.js'
+import { profileSeeded } from './lazy-start.js'
 import {
   DEFAULT_SESSIONS_FILE,
   loadSessionSnapshot,
@@ -20,10 +21,12 @@ const SESSION_URL_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
 const PROGRESS_LOG_MS = 30000
 
 /** 页内探针：包裹 XHR，捕获 /chat/completion 的 body 与流式 responseText。
- *  幂等：重复注入（整页刷新后 framenavigated 重注）不会双重包裹 */
-const PROBE = `(() => {
+ *  幂等：重复注入（整页刷新后 framenavigated 重注）不会双重包裹
+ *
+ *  export 只是为了让测试能在沙箱里跑**这段真实脚本**；不影响页面侧语义。*/
+export const PROBE = `(() => {
   if (window.__probeInstalled) return 'probe-ok'
-  window.__probeInstalled = true
+  window.__probeInstalled = true;
   window.__comp = window.__comp || [];
   const oOpen = XMLHttpRequest.prototype.open;
   const oSend = XMLHttpRequest.prototype.send;
@@ -33,8 +36,15 @@ const PROBE = `(() => {
       if (/completion/.test(this.__u || '')) {
         const entry = { url: this.__u, body: b, t0: Date.now(), status: null, resp: '', done: false };
         window.__comp.push(entry);
-        this.addEventListener('progress', () => { entry.resp = this.responseText; });
-        this.addEventListener('loadend', () => { entry.status = this.status; entry.done = true; entry.resp = this.responseText; });
+        // 增量累积：progress 给的是 responseText 全量快照，逐次整份复制是 O(n^2)。
+        // startsWith 守卫不可省：重定向/重试时 responseText 可能整体换掉，
+        // 无守卫的 slice(prev.length) 会切出中段并追加进已累积正文（脏数据）。
+        // 语义等价于 src/transports/tail.ts 的 appendTail。
+        const merge = function(prev, next) {
+          return (next.length > prev.length && next.startsWith(prev)) ? prev + next.slice(prev.length) : next;
+        };
+        this.addEventListener('progress', () => { entry.resp = merge(entry.resp, this.responseText); });
+        this.addEventListener('loadend', () => { entry.status = this.status; entry.done = true; entry.resp = merge(entry.resp, this.responseText); });
       }
     } catch (e) {}
     return oSend.call(this, b, ...r);
@@ -148,6 +158,107 @@ export function bucketSSE(sse: string): { reasoning: string; content: string } {
 
 function sleep(ms: number): Promise<void> { return new Promise(r => setTimeout(r, ms)) }
 
+/**
+ * (b) 增量 SSE 消费。
+ *
+ * generate() 每 400ms 轮询一次。若每次都把全量 resp 重新喂给 bucketSSE，
+ * 一条 N 字节的流会被反复重新解析（JSON.parse 每行每拍），总代价 O(N²)。
+ * cursor 只解析**新增部分**，并保留跨 chunk 的解析状态。
+ *
+ * 等价性保证（tests/deepseek-bucket-sse.test.ts 里逐切点验证）：
+ * - 只提交「已遇到 \n 的完整行」，推进 offset；末尾半行**暂解析但不提交**。
+ *   整份解析 `sse.split('\n')` 的最后一段即使没有 \n 也会被处理，所以视图里
+ *   必须带上它，否则中间步会比整份解析「慢半拍」——generate() 靠 emittedC
+ *   切片产出增量，慢半拍就是流式行为变化（熔断线）。
+ * - 视图复用 bucketSSE 末尾的 seed 修正，保持与原实现逐字符一致。
+ * - 非前缀延伸（XHR 重定向/重试把 responseText 整体换掉）时丢弃状态重解析。
+ *
+ * 时序未变：generate() 的轮询间隔、emittedC/emittedR 切片、以及流末那次
+ * 权威的整份 bucketSSE 全部保持原样，本函数只是替换了「每拍重解析」这一动作。
+ */
+export interface SseCursor {
+  /** 已提交的完整行字节数（含其行尾 \n） */
+  offset: number
+  /** 上一条提交的整行，用于非前缀延伸检测（只比一行，O(行长) 而非 O(全长)） */
+  lastLine: string
+  committed: SseState
+  /** 本拍的视图：含末尾半行的暂解析结果，等价于对当前前缀做整份解析 */
+  reasoning: string
+  content: string
+}
+
+interface SseState { reasoning: string; content: string; lastPath: string; inAnswer: boolean; answerSeed: string }
+
+export function createSseCursor(): SseCursor {
+  return {
+    offset: 0,
+    lastLine: '',
+    committed: { reasoning: '', content: '', lastPath: '', inAnswer: false, answerSeed: '' },
+    reasoning: '',
+    content: '',
+  }
+}
+
+/** 单行解析：把一条 SSE 行应用到 state 上（与 bucketSSE 内联逻辑逐字对应）。 */
+function applyLine(line: string, s: SseState): void {
+  if (!line.startsWith('data:')) return
+  const payload = line.slice(5).trim()
+  if (!payload || payload === '[DONE]') return
+  let obj: { p?: string; o?: string; v?: unknown }
+  try { obj = JSON.parse(payload) } catch { return }
+  const hasOp = obj.p !== undefined || obj.o !== undefined
+  if (hasOp) s.lastPath = String(obj.p ?? '')
+  if (hasOp && s.lastPath === 'response/fragments') {
+    let arr: unknown = obj.v
+    if (typeof arr === 'string') { try { arr = JSON.parse(arr) } catch { arr = null } }
+    if (Array.isArray(arr)) {
+      const resp = (arr as Array<{ type?: string; content?: string }>).filter(f => f?.type === 'RESPONSE').at(-1)
+      if (resp) { s.inAnswer = true; s.answerSeed = resp.content ?? '' }
+    }
+    return
+  }
+  if (!/\/content$/.test(s.lastPath)) return
+  if (typeof obj.v !== 'string') return
+  if (s.inAnswer) s.content += obj.v
+  else s.reasoning += obj.v
+}
+
+function seedFix(s: SseState): { reasoning: string; content: string } {
+  const content = (s.inAnswer && s.answerSeed && !s.content.startsWith(s.answerSeed))
+    ? s.answerSeed + s.content : s.content
+  return { reasoning: s.reasoning, content }
+}
+
+export function feedSse(cursor: SseCursor, full: string): { reasoning: string; content: string } {
+  // 非前缀延伸 → 整体重解析。比对「上一条提交的整行」而不是整份前缀：
+  // O(行长) 而非 O(全长)，重定向/重试会同时改掉这条行，足以识别。
+  if (cursor.offset > full.length
+    || (cursor.offset > 0 && full.slice(cursor.offset - cursor.lastLine.length, cursor.offset) !== cursor.lastLine)) {
+    cursor.offset = 0
+    cursor.lastLine = ''
+    cursor.committed = { reasoning: '', content: '', lastPath: '', inAnswer: false, answerSeed: '' }
+  }
+
+  const rest = full.slice(cursor.offset)
+  const parts = rest.split('\n')
+  const tail = parts.pop() ?? '' // 未见 \n 的半行
+
+  for (const line of parts) {
+    if (line === '') continue
+    applyLine(line, cursor.committed)
+    cursor.lastLine = line
+    cursor.offset += line.length + 1
+  }
+
+  // 半行暂解析到副本上：结果进视图，但不写回 committed（下一拍它会更完整）。
+  const viewState: SseState = { ...cursor.committed }
+  if (tail !== '') applyLine(tail, viewState)
+  const v = seedFix(viewState)
+  cursor.reasoning = v.reasoning
+  cursor.content = v.content
+  return v
+}
+
 const SELECTORS_PATH = fileURLToPath(new URL('../../selectors.json', import.meta.url))
 
 let selectorsCache: { send: string; newChat: string } | null = null
@@ -168,8 +279,10 @@ function readSelectors(): { send: string; newChat: string } {
 
 export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}): WebBridge {
   const sessionsFile = opts.sessionsFile ?? process.env.SESSIONS_FILE ?? DEFAULT_SESSIONS_FILE
-  let browser: Browser | null = null
-  let page: Page | null = null
+let browser: Browser | null = null
+let page: Page | null = null
+/** 正在进行的 start()；用于让 start 幂等且并发安全（懒启动下首请求与 CLI 可能同时触发） */
+let starting: Promise<void> | null = null
   let chromeProc: ReturnType<typeof spawn> | null = null
   let generating = false
   let chatSessionId: string | null = null
@@ -193,10 +306,7 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
   async function ensureProfileDir(): Promise<void> {
     const dest = path.resolve(config.browser.profileDir)
     fs.mkdirSync(dest, { recursive: true })
-    // 判据要同时认新旧布局：新版 Chrome 的 Cookies 在 Default\Network\Cookies
-    const seeded = fs.existsSync(path.join(dest, 'Default', 'Network', 'Cookies'))
-      || fs.existsSync(path.join(dest, 'Default', 'Cookies'))
-    if (!seeded) {
+    if (!profileSeeded(dest)) {
       console.log('[web-bridge] fresh profile — first run needs manual login in the Chrome window')
     }
   }
@@ -295,12 +405,20 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
     }
   }
 
-  return {
-    async start() {
-      if (browser) return
+  /** 幂等启动：重复调用不重复拉 Chrome。懒启动下 CLI 与首个 generate 可能同时触发，
+   *  故用 starting 复用同一个 promise 而不是各拉一个 Chrome。 */
+  async function startBridge(): Promise<void> {
+    if (starting) return starting
+    if (browser) return
+    starting = (async () => {
       await launch()
       await openChatPage()
-    },
+    })()
+    try { await starting } finally { starting = null }
+  }
+
+  return {
+    async start() { await startBridge() },
     async stop() {
       try { await browser?.close() } catch { /* detached chrome 不随连接关闭而退出 */ }
       if (chromeProc?.pid) {
@@ -311,7 +429,9 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
       browser = null; page = null; chromeProc = null
     },
     async *generate(req): AsyncIterable<GenerateChunk> {
-      if (!page) throw new Error('bridge not started')
+      // (c) 懒启动：首个请求才拉起 Chrome。start() 幂等，重复调用无副作用。
+      if (!page) await startBridge()
+      if (!page) throw new Error('bridge not started') // start 失败兜底；同时让 TS 保住 null 收窄
       while (generating) await sleep(200) // 单飞锁：FIFO 等待
       generating = true
       try {
@@ -330,6 +450,7 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
         let emittedC = 0, emittedR = 0
         let lastProgress = Date.now()
         let lastLen = 0
+        const sseCursor = createSseCursor()
         const deadline = Date.now() + (req.timeoutMs ?? config.timeoutMs)
         while (Date.now() < deadline) {
           if (entryIndex === -1) {
@@ -353,7 +474,9 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
               return e ? { done: e.done, status: e.status, resp: String(e.resp ?? '') } : null
             }, entryIndex)
             if (st) {
-              const b = bucketSSE(st.resp)
+              // (b) 增量解析：只喂新增尾部，状态跨拍保留。轮询间隔 / emittedC 切片 /
+              // 流末那次权威整份解析都保持原样，时序与语义不变。
+              const b = feedSse(sseCursor, st.resp)
               if (b.content.length > emittedC) { yield { content: b.content.slice(emittedC) }; emittedC = b.content.length }
               if (b.reasoning.length > emittedR) { yield { reasoning: b.reasoning.slice(emittedR) }; emittedR = b.reasoning.length }
               if (st.resp.length !== lastLen) { lastLen = st.resp.length; lastProgress = Date.now() }
@@ -425,7 +548,19 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
     },
     health(): Promise<Health> {
       return (async () => {
-        if (!page) return { status: 'error', loggedIn: false }
+        /**
+         * (c) 懒启动下 Chrome 可能根本没起来。
+         *
+         * 这里**不返回 error**：error 的语义是「页面在但读取失败」，调用方
+         * （尤其 CLI 的阻塞登录循环）会把 error 当成需要重试或退出的坏状态。
+         * 「还没启动」是一个完全正常的状态——CLI 就是靠它决定跳过登录等待。
+         * 返回 login_required + loggedIn=false：语义正确（确实还没登录），
+         * 且能让 CLI 的既有分支自然处理，无需为它单开一条错误路径。
+         *
+         * 判据用 profile 播种情况而不是猜测：Cookies 在 → 大概率已登录，
+         * 只是 Chrome 还没被拉起来。
+         */
+        if (!page) return { status: 'login_required', loggedIn: false }
         try {
           /**
            * loggedIn 的主判据是「聊天输入框是否渲染」，不是正文文本。

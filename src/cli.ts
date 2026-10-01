@@ -10,6 +10,7 @@ import { parseArgs, helpText } from './cli-args.js'
 import { loadConfig } from './config.js'
 import { createWebBridge } from './transports/deepseek-web.js'
 import { detectWindowsChrome, chromeNotFoundMessage, windowsChromeCandidates } from './transports/chrome-detect.js'
+import { profileSeeded } from './transports/lazy-start.js'
 import { startShim, serveOnly } from './index.js'
 
 /** 登录轮询节奏。3 秒是「用户切窗口登录」的合理粒度：再密只是白烧 CPU。 */
@@ -93,15 +94,21 @@ async function main(): Promise<void> {
     process.exit(0)
   }
 
-  // serve：先确保登录态，再开始监听。端口只在能干活之后才开。
-  const ok = await (async () => {
-    const bridge = createWebBridge(config)
-    const h = await bridge.health()
-    if (h.loggedIn) return true
+  // serve：先判断能不能跳过登录等待。
+  //
+  // (c) 懒启动：profile 播种过（有 Cookies）说明以前登录过 → 不必阻塞等待，
+  // Chrome 推迟到首个 generate() 请求再拉起。端口可以立刻开。
+  // 未播种 → 维持 Task 5 的阻塞登录流程（必须先把 Chrome 拉起来登录）。
+  const seeded = profileSeeded(config.browser.profileDir)
+  if (!seeded) {
     console.log('[brain] 未检测到登录态，需要先登录。')
-    return waitForLogin(bridge, () => bridge.health())
-  })()
-  if (!ok) process.exit(1)
+    const bridge = createWebBridge(config)
+    const ok = await waitForLogin(bridge, () => bridge.health())
+    await bridge.stop()
+    if (!ok) process.exit(1)
+  } else {
+    console.log('[brain] profile 已播种，跳过登录等待；Chrome 将在首个请求时启动')
+  }
 
   await startShim()
 }

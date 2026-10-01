@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { bucketSSE } from '../src/transports/deepseek-web.js'
+import { bucketSSE, createSseCursor, feedSse } from '../src/transports/deepseek-web.js'
 
 const fixturesDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures')
 
@@ -79,5 +79,141 @@ describe('bucketSSE（协议单元）', () => {
     const b = bucketSSE(sse)
     expect(b.reasoning).toBe('直接答案')
     expect(b.content).toBe('')
+  })
+})
+
+/**
+ * (b) 增量消费。
+ *
+ * generate() 每 400ms 轮询一次，若每次都把全量 resp 重新喂给 bucketSSE，
+ * 一条 N 字节的流会被反复重新解析，总代价 O(N²)。cursor 只解析新增部分。
+ *
+ * **验收标准是等价性**：分多次喂入与一次喂入整份，在**每一次**中间步都必须
+ * 完全相同——不只是最终结果相同。因为 generate() 靠 emittedC/emittedR
+ * 切片产出增量，中间步若偏早/偏晚就会改变流式行为（熔断线所在）。
+ */
+describe('增量 SSE 消费（等价性）', () => {
+  /** 用真实 fixture 做等价性检验 */
+  it('真实 fixture：分片喂入与整份喂入，每一步结果都相同', () => {
+    const whole = bucketSSE(ENTRY0)
+    const cuts = [1, 500, 5000, 20000, ENTRY0.length - 1, ENTRY0.length]
+    let cursor = createSseCursor()
+    let prev = ''
+    for (const cut of cuts) {
+      const chunk = ENTRY0.slice(prev.length, cut)
+      prev = ENTRY0.slice(0, cut)
+      const inc = feedSse(cursor, prev)
+      // 每一中间步都必须等于「对当前前缀做整份解析」的结果
+      expect(inc.reasoning, `cut=${cut}`).toBe(bucketSSE(prev).reasoning)
+      expect(inc.content, `cut=${cut}`).toBe(bucketSSE(prev).content)
+    }
+    expect(cursor.reasoning).toBe(whole.reasoning)
+    expect(cursor.content).toBe(whole.content)
+  })
+
+  it('构造流：任意切点逐一切分，结果恒等于整份解析', () => {
+    const sse = stream(['思考A', '思考B', '思考C'], ['答案1', '答案2', '答案3'], { seed: '我是' })
+    for (let cut = 0; cut <= sse.length; cut++) {
+      const cursor = createSseCursor()
+      feedSse(cursor, sse.slice(0, cut))
+      expect(cursor.reasoning, `cut=${cut}`).toBe(bucketSSE(sse.slice(0, cut)).reasoning)
+      expect(cursor.content, `cut=${cut}`).toBe(bucketSSE(sse.slice(0, cut)).content)
+    }
+  })
+
+  it('continuation 形态（无 p/o 的延续行）切分也等价', () => {
+    const sse = stream(['想1', '想2'], ['答1', '答2'], { continuation: true, seed: '我' })
+    for (let cut = 0; cut <= sse.length; cut++) {
+      const cursor = createSseCursor()
+      feedSse(cursor, sse.slice(0, cut))
+      expect(cursor.content, `cut=${cut}`).toBe(bucketSSE(sse.slice(0, cut)).content)
+    }
+  })
+
+  // 半行缓冲是核心：XHR 在任意字节处截断，最后一行必然常常是半行。
+  // 若把半行当成完整行提交，下一片会把它当新行再解析一次 → 重复内容。
+  it('半行不会被重复计入', () => {
+    const sse = 'data: {"p":"response/fragments/-1/content","o":"APPEND","v":"AAAABBBBCCCC"}\n'
+    const half = sse.length - 8
+    const cursor = createSseCursor()
+    feedSse(cursor, sse.slice(0, half))          // 第一片停在半行
+    const mid = feedSse(cursor, sse)
+    expect(mid.reasoning).toBe('AAAABBBBCCCC') // 没有 AAABBBB+AAABBBB
+    expect(mid.reasoning).not.toContain('AAAAAAAA')
+  })
+
+  it('responseText 非前缀延伸（重定向/重试）时整体重解析，不拼脏数据', () => {
+    const cursor = createSseCursor()
+    const first = 'data: {"p":"response/fragments/-1/content","o":"APPEND","v":"第一份"}\n'
+    feedSse(cursor, first)
+    expect(cursor.reasoning).toBe('第一份')
+    const second = 'data: {"p":"response/fragments/-1/content","o":"APPEND","v":"完全不同的"}\n'
+    const r = feedSse(cursor, second)
+    expect(r.reasoning).toBe('完全不同的')
+    expect(r.reasoning).not.toContain('第一份')
+  })
+
+  it('无新增时重复喂入同一份 → 结果稳定不膨胀', () => {
+    const cursor = createSseCursor()
+    const sse = stream(['想'], ['答'], { seed: 'x' })
+    feedSse(cursor, sse)
+    const a = cursor.content
+    feedSse(cursor, sse)
+    feedSse(cursor, sse)
+    expect(cursor.content).toBe(a)
+    expect(cursor.content).not.toContain('xx')
+  })
+
+  it('cursor 始终不早于整份解析（generate() 靠它切片产出增量）', () => {
+    const sse = stream(['思考', '继续'], ['答', '案'], { seed: 'S' })
+    for (let cut = 1; cut <= sse.length; cut++) {
+      const cursor = createSseCursor()
+      feedSse(cursor, sse.slice(0, cut))
+      const whole = bucketSSE(sse.slice(0, cut))
+      expect(cursor.content.length).toBeLessThanOrEqual(whole.content.length)
+      expect(cursor.reasoning.length).toBeLessThanOrEqual(whole.reasoning.length)
+    }
+  })
+
+  /**
+   * 最贴近真实的一例：generate() 每 400ms 轮询一次，落点**大概率落在行中间**，
+   * 于是同一个 cursor 会连续收到多份「停在半行」的前缀。
+   *
+   * 单切点用例抓不到半行缓冲的 bug——一次喂半行、再喂整份时，
+   * 越界的 offset 会被非前缀守卫发现并触发整体重解析，输出照样正确（只是慢）。
+   * 必须连续多刀切在同一行内部，才会暴露「半行被当整行提交 → 下一刀从行中间
+   * 开始解析 → 整行丢失」。
+   */
+  it('连续多刀切在同一行内部，结果仍等于整份解析', () => {
+    const sse = stream(['第一段思考', '第二段思考', '第三段思考'], ['第一段答案', '第二段答案', '第三段答案'], { seed: 'Q' })
+    const whole = bucketSSE(sse)
+    const cuts: number[] = []
+    for (let i = 1; i < sse.length; i += 7) cuts.push(i) // 步长刻意与行长不同步，保证落在行内
+    cuts.push(sse.length)
+    const cursor = createSseCursor()
+    let prevLen = 0
+    for (const cut of cuts) {
+      feedSse(cursor, sse.slice(0, cut))
+      prevLen = cut
+    }
+    expect(prevLen).toBe(sse.length)
+    expect(cursor.reasoning).toBe(whole.reasoning)
+    expect(cursor.content).toBe(whole.content)
+  })
+
+  it('逐刀校验：连续半行轮询下每一步都不丢内容（无重复、无丢失）', () => {
+    const sse = stream(['甲乙丙丁戊己庚辛'], ['一二三四五六七八九十'], { continuation: true })
+    const cursor = createSseCursor()
+    const seen: string[] = []
+    for (let cut = 1; cut <= sse.length; cut++) {
+      const r = feedSse(cursor, sse.slice(0, cut))
+      seen.push(r.content)
+      // 视图必须始终等于整份解析：既不丢（>= 整份对同前缀的值），也不重复膨胀
+      expect(r.content, `cut=${cut}`).toBe(bucketSSE(sse.slice(0, cut)).content)
+    }
+    // 逐拍产出的增量拼起来 == 最终全文
+    let acc = ''
+    for (const s of seen) if (s.length > acc.length) acc = s
+    expect(acc).toBe(bucketSSE(sse).content)
   })
 })
