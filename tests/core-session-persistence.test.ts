@@ -6,7 +6,7 @@ import {
   createSessionStore,
   loadSessionSnapshot,
   saveSessionSnapshot,
-} from '../src/session/store.js'
+} from '../src/core/session/store.js'
 import {
   chatUrlFor,
   pickResumeEntry,
@@ -16,12 +16,12 @@ import {
   completionError,
   NEW_CHAT_FALLBACKS,
   textFromPTextSelector,
-} from '../src/transport/web-bridge.js'
-import { computeSessionKey } from '../src/session/manager.js'
-import { runAgentTurn } from '../src/pipeline.js'
+} from '../src/transports/deepseek-web.js'
+import { computeSessionKey } from '../src/core/session/manager.js'
+import { runAgentTurn } from '../src/core/planner.js'
 import { loadConfig } from '../src/config.js'
 import type { OpenAIMessage, ToolSpec } from '../src/types.js'
-import type { Transport } from '../src/transport/types.js'
+import type { Transport } from '../src/core/types.js'
 
 let dir = ''
 let file = ''
@@ -43,6 +43,8 @@ function fakeTransport(chunks: Array<{ reasoning?: string; content?: string }>):
     lastChatSessionId() { return 'sess-live' },
     resetSession() {},
     async newChat() {},
+    async cancel() {},
+    getCapabilities() { return { supportsThinking: true, supportsResume: true, maxContextTokens: 64000 } },
   }
 }
 

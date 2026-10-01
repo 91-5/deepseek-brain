@@ -1,9 +1,9 @@
 import http from 'node:http'
 import type { OpenAIChatRequest, OpenAIChatResponse } from './openai-types.js'
 import type { AppConfig } from '../config.js'
-import { runAgentTurn } from '../pipeline.js'
+import { runAgentTurn } from '../core/planner.js'
 import type { OpenAIMessage, ToolSpec } from '../types.js'
-import type { Transport } from '../transport/types.js'
+import type { Transport } from '../core/types.js'
 
 function toInternal(req: OpenAIChatRequest): { messages: OpenAIMessage[]; tools: ToolSpec[] } {
   const messages: OpenAIMessage[] = req.messages.map(m => ({

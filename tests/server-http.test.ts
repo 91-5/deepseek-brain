@@ -3,7 +3,7 @@ import http from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { createHttpServer, setTransportGetter } from '../src/server/http.js'
 import { loadConfig } from '../src/config.js'
-import type { Transport } from '../src/transport/types.js'
+import type { Transport } from '../src/core/types.js'
 import type { OpenAIMessage, ToolSpec } from '../src/types.js'
 
 const cfg = loadConfig({})
@@ -23,6 +23,8 @@ function fakeTransport(content: string): Transport & { prompts: string[] } {
     lastChatSessionId() { return 'sess-1' },
     resetSession() {},
     async newChat() {},
+    async cancel() {},
+    getCapabilities() { return { supportsThinking: true, supportsResume: true, maxContextTokens: 64000 } },
   }
 }
 
@@ -179,6 +181,8 @@ describe('http server', () => {
       lastChatSessionId() { return 'sess-1' },
       resetSession() {},
       async newChat() {},
+      async cancel() {},
+      getCapabilities() { return { supportsThinking: true, supportsResume: true, maxContextTokens: 64000 } },
     }
     setTransportGetter(() => slow)
     const ac = new AbortController()

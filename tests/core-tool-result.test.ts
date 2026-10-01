@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { renderToolResult } from '../src/protocol/tool-result.js'
+import { renderToolResult } from '../src/core/protocol/tool-result.js'
 
 describe('renderToolResult', () => {
   it('渲染带标记的结果', () => {

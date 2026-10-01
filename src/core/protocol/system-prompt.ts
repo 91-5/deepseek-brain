@@ -1,4 +1,4 @@
-import type { ToolSpec } from '../types.js'
+import type { ToolSpec } from '../../types.js'
 
 const TEMPLATE = `你是任务规划大脑。需要调用工具时，输出一个代码块：
 \`\`\`tool_call

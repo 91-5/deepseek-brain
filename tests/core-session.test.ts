@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { computeSessionKey, newMessagesSince, estimateTokens } from '../src/session/manager.js'
-import { buildCompactPrompt, totalTokens } from '../src/session/compact.js'
+import { computeSessionKey, newMessagesSince, estimateTokens } from '../src/core/session/manager.js'
+import { buildCompactPrompt, totalTokens } from '../src/core/compaction/index.js'
 import type { OpenAIMessage } from '../src/types.js'
 
 const msgs: OpenAIMessage[] = [

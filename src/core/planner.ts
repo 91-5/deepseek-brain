@@ -1,12 +1,12 @@
-import type { AppConfig } from './config.js'
-import type { OpenAIMessage, ToolCall, ToolSpec } from './types.js'
+import type { AppConfig } from '../config.js'
+import type { OpenAIMessage, ToolCall, ToolSpec } from '../types.js'
 import { buildSystemPrompt } from './protocol/system-prompt.js'
 import { parseModelOutput } from './protocol/parser.js'
 import { renderToolResult } from './protocol/tool-result.js'
-import type { Transport } from './transport/types.js'
+import type { Transport } from './types.js'
 import { computeSessionKey, newMessagesSince } from './session/manager.js'
 import { createSessionStore, DEFAULT_SESSIONS_FILE, type SessionRecord, type SessionStore } from './session/store.js'
-import { buildCompactPrompt, totalTokens } from './session/compact.js'
+import { buildCompactPrompt, totalTokens } from './compaction/index.js'
 
 const FENCE_OPEN = '```tool_call'
 

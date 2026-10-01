@@ -1,4 +1,4 @@
-import type { ToolSpec } from '../types.js'
+import type { ToolSpec } from '../../types.js'
 
 export type ParseResult =
   | { kind: 'text'; text: string }

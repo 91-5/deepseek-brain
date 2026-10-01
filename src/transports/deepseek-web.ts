@@ -5,14 +5,14 @@ import { fileURLToPath } from 'node:url'
 import puppeteer from 'puppeteer-core'
 import type { Browser, Page } from 'puppeteer-core'
 import type { AppConfig } from '../config.js'
-import type { GenerateChunk, HealthStatus, Transport } from './types.js'
+import type { GenerateChunk, HealthStatus, Transport, Capabilities } from '../core/types.js'
 import {
   DEFAULT_SESSIONS_FILE,
   loadSessionSnapshot,
   saveSessionSnapshot,
   type SessionSnapshot,
-} from '../session/store.js'
-import { detectWindowsChrome, chromeNotFoundMessage, windowsChromeCandidates } from '../transports/chrome-detect.js'
+} from '../core/session/store.js'
+import { detectWindowsChrome, chromeNotFoundMessage, windowsChromeCandidates } from './chrome-detect.js'
 
 const CHAT_URL = 'https://chat.deepseek.com/'
 const SESSION_URL_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -172,6 +172,9 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
   let chromeProc: ReturnType<typeof spawn> | null = null
   let generating = false
   let chatSessionId: string | null = null
+  /** 进行中生成对应的 window.__comp 下标；-1 表示当前没有进行中的请求。
+   *  提到闭包作用域是为了让 cancel() 能定位同一条 entry（与 generate 内取值完全一致）。 */
+  let entryIndex = -1
 
   /** JS 派发点击：::-p-text 命中的是嵌套 div 文本节点，CDP hit-test 不可点，
    *  locator.click() 会卡在 actionability 等待直到超时（2026-09-30 实测）；
@@ -321,7 +324,7 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
         await clickSend(sel.send)
 
         let t0 = Date.now()
-        let entryIndex = -1
+        entryIndex = -1
         let retried = false
         let emittedC = 0, emittedR = 0
         let lastProgress = Date.now()
@@ -378,6 +381,27 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
         throw new Error('timeout: generation exceeded limit')
       } finally {
         generating = false
+        entryIndex = -1
+      }
+    },
+    /** harness 侧取消：把进行中那条 entry 标记为完成并清空 resp，
+     *  generate 的轮询下一拍读到 done 即返回（不复用任何新的取值路径，只写 __comp[entryIndex]）。 */
+    async cancel() {
+      if (!page || entryIndex < 0) return
+      const i = entryIndex
+      await page.evaluate(idx => {
+        const e = (window as unknown as { __comp: Array<{ done: boolean; resp: string }> }).__comp[idx]
+        if (e) { e.done = true; e.resp = '' }
+      }, i)
+    },
+    getCapabilities(): Capabilities {
+      return {
+        supportsThinking: true,
+        supportsResume: true,
+        // 网页端不暴露模型规格；64000 取 DeepSeek 公开的 chat 上下文上限（V3/R1 同为 64K），
+        // 并非本地实测值。compaction 阈值仍以 config.compactTokenThreshold 为准，两者独立。
+        maxContextTokens: 64000,
+        tokenEstimator: (t: string) => Math.ceil(t.length / 2),
       }
     },
     async newChat() {

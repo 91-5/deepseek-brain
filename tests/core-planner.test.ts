@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { runAgentTurn, clampSentCount } from '../src/pipeline.js'
-import type { Transport } from '../src/transport/types.js'
+import { runAgentTurn, clampSentCount } from '../src/core/planner.js'
+import type { Transport } from '../src/core/types.js'
 import { loadConfig } from '../src/config.js'
 import type { OpenAIMessage, ToolSpec } from '../src/types.js'
 
@@ -23,6 +23,8 @@ function fakeTransport(attempts: Array<Array<{ reasoning?: string; content?: str
     lastChatSessionId() { return 'sess-1' },
     resetSession() {},
     async newChat() {},
+    async cancel() {},
+    getCapabilities() { return { supportsThinking: true, supportsResume: true, maxContextTokens: 64000 } },
   }
 }
 

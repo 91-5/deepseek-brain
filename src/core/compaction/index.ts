@@ -1,5 +1,5 @@
-import type { OpenAIMessage } from '../types.js'
-import { estimateTokens } from './manager.js'
+import type { OpenAIMessage } from '../../types.js'
+import { estimateTokens } from '../session/manager.js'
 
 /** 超阈值时生成 compaction 指令（由 transport 发给 DeepSeek，纯文本，不涉及工具协议） */
 export function buildCompactPrompt(messages: OpenAIMessage[]): string {

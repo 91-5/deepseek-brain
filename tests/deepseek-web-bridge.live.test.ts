@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest'
-import { createWebBridge } from '../src/transport/web-bridge.js'
+import { createWebBridge } from '../src/transports/deepseek-web.js'
 import { loadConfig } from '../src/config.js'
 
 describe.runIf(process.env.LIVE_TEST === '1')('web-bridge live', () => {

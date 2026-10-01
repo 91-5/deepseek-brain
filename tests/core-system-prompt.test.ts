@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildSystemPrompt } from '../src/protocol/system-prompt'
+import { buildSystemPrompt } from '../src/core/protocol/system-prompt'
 import type { ToolSpec } from '../src/types'
 
 describe('buildSystemPrompt', () => {

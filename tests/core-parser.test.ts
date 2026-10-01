@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseModelOutput, findFenceStart } from '../src/protocol/parser.js'
+import { parseModelOutput, findFenceStart } from '../src/core/protocol/parser.js'
 import type { ToolSpec } from '../src/types.js'
 
 const TOOLS: ToolSpec[] = [{ name: 'read_file', description: '读', parameters: {} }]

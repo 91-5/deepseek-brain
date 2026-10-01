@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import type { OpenAIMessage } from '../types.js'
+import type { OpenAIMessage } from '../../types.js'
 
 /**
  * 会话键：截至并包含第一条 user 消息的前缀哈希（无 user 则取全部）。

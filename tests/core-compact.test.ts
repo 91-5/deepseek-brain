@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { runAgentTurn } from '../src/pipeline.js'
-import type { Transport } from '../src/transport/types.js'
+import { runAgentTurn } from '../src/core/planner.js'
+import type { Transport } from '../src/core/types.js'
 import { loadConfig } from '../src/config.js'
 import type { OpenAIMessage, ToolSpec } from '../src/types.js'
 
@@ -21,6 +21,8 @@ describe('compaction', () => {
       async health() { return 'ok' as const },
       lastChatSessionId() { return 's2' },
       resetSession() {},
+      async cancel() {},
+      getCapabilities() { return { supportsThinking: true, supportsResume: true, maxContextTokens: 64000 } },
     }
     const messages: OpenAIMessage[] = [
       { role: 'user', content: '第一轮任务'.repeat(5) },
@@ -41,6 +43,8 @@ describe('compaction', () => {
       async health() { return 'ok' as const },
       lastChatSessionId() { return null },
       resetSession() {},
+      async cancel() {},
+      getCapabilities() { return { supportsThinking: true, supportsResume: true, maxContextTokens: 64000 } },
     }
     const r = await runAgentTurn({ messages: [{ role: 'user', content: '短问' }], tools: TOOLS, transport: t, config: loadConfig({}) })
     expect(newChats).toBe(0)

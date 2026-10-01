@@ -1,6 +1,6 @@
 import { loadConfig } from './config.js'
 import { createHttpServer, setTransportGetter } from './server/http.js'
-import { createWebBridge } from './transport/web-bridge.js'
+import { createWebBridge } from './transports/deepseek-web.js'
 
 async function main() {
   const config = loadConfig()
