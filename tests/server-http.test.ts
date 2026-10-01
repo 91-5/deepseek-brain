@@ -19,7 +19,7 @@ function fakeTransport(content: string): Transport & { prompts: string[] } {
       if (req.thinking) yield { reasoning: '想一下' }
       yield { content }
     },
-    async health() { return 'ok' as const },
+    async health() { return { status: 'ok' as const, loggedIn: true } },
     lastChatSessionId() { return 'sess-1' },
     resetSession() {},
     async newChat() {},
@@ -177,7 +177,7 @@ describe('http server', () => {
         await new Promise(r => setTimeout(r, 300)) // 模拟慢生成，abort 后 write 才落到死 socket
         yield { content: '迟到的回答' }
       },
-      async health() { return 'ok' as const },
+      async health() { return { status: 'ok' as const, loggedIn: true } },
       lastChatSessionId() { return 'sess-1' },
       resetSession() {},
       async newChat() {},

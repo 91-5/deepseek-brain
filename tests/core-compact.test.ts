@@ -18,7 +18,7 @@ describe('compaction', () => {
         yield { content: `收到:${req.prompt.slice(0, 30)}` }
       },
       async newChat() { newChats++ },
-      async health() { return 'ok' as const },
+      async health() { return { status: 'ok' as const, loggedIn: true } },
       lastChatSessionId() { return 's2' },
       resetSession() {},
       async cancel() {},
@@ -40,7 +40,7 @@ describe('compaction', () => {
     const t: Transport = {
       async *generate() { yield { content: '普通回答' } },
       async newChat() { newChats++ },
-      async health() { return 'ok' as const },
+      async health() { return { status: 'ok' as const, loggedIn: true } },
       lastChatSessionId() { return null },
       resetSession() {},
       async cancel() {},

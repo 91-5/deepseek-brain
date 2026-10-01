@@ -21,7 +21,7 @@ function fakeTransport(attempts: Array<Array<{ reasoning?: string; content?: str
       call++
       for (const c of chunks) yield c
     },
-    async health() { return 'ok' as const },
+    async health() { return { status: 'ok' as const, loggedIn: true } },
     lastChatSessionId() { return 'sess-1' },
     resetSession() {},
     async newChat() {},

@@ -15,7 +15,7 @@ export type { OpenAIMessage, ToolCall, ToolSpec } from './types.js'
 export { createHttpServer, setTransportGetter } from './server/http.js'
 export { createWebBridge } from './transports/deepseek-web.js'
 
-import { loadConfig } from './config.js'
+import { loadConfig, type AppConfig } from './config.js'
 import { createHttpServer, setTransportGetter } from './server/http.js'
 import { createWebBridge } from './transports/deepseek-web.js'
 
@@ -30,12 +30,26 @@ export async function startShim(env: Record<string, string | undefined> = proces
   const bridge = createWebBridge(config)
   setTransportGetter(() => bridge)
   await bridge.start()
-  console.log(`[brain] transport health: ${await bridge.health()}`)
+  const h = await bridge.health()
+  console.log(`[brain] transport health: ${h.status} (loggedIn=${h.loggedIn})`)
+  return startHttpServer(config)
+}
+
+/** 单独抽出「只监听」这一步，好让 CLI 在 login 子命令下能整个跳过它。 */
+export function startHttpServer(config: AppConfig): Promise<void> {
   const server = createHttpServer(config)
-  server.listen(config.port, '127.0.0.1', () => {
-    console.log(`[brain] shim listening on http://127.0.0.1:${config.port}/v1`)
+  return new Promise<void>(resolve => {
+    server.listen(config.port, '127.0.0.1', () => {
+      console.log(`[brain] shim listening on http://127.0.0.1:${config.port}/v1`)
+      resolve()
+    })
+    const shutdown = async () => { server.close(); process.exit(0) }
+    process.on('SIGINT', shutdown)
+    process.on('SIGTERM', shutdown)
   })
-  const shutdown = async () => { server.close(); await bridge.stop(); process.exit(0) }
-  process.on('SIGINT', shutdown)
-  process.on('SIGTERM', shutdown)
+}
+
+/** CLI 用的纯监听路径：复用同一个 createHttpServer，不另造一套。 */
+export function serveOnly(config: AppConfig): Promise<void> {
+  return startHttpServer(config)
 }

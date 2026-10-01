@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url'
 import puppeteer from 'puppeteer-core'
 import type { Browser, Page } from 'puppeteer-core'
 import type { AppConfig } from '../config.js'
-import type { GenerateChunk, HealthStatus, Transport, Capabilities } from '../core/types.js'
+import type { GenerateChunk, Health, Transport, Capabilities } from '../core/types.js'
+import { judgeLoginState, CHAT_INPUT_SELECTOR } from './login-state.js'
 import {
   DEFAULT_SESSIONS_FILE,
   loadSessionSnapshot,
@@ -422,15 +423,27 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
       await sleep(1000)
       chatSessionId = null
     },
-    health(): Promise<HealthStatus> {
+    health(): Promise<Health> {
       return (async () => {
-        if (!page) return 'error' as const
+        if (!page) return { status: 'error', loggedIn: false }
         try {
-          const txt = await page.evaluate(() => document.body.innerText)
-          if (txt.includes('Log in') || txt.includes('登录')) return 'login_required' as const
-          const hasInput = await page.evaluate(() => !!document.querySelector('textarea'))
-          return hasInput ? ('ok' as const) : ('ui_changed' as const)
-        } catch { return 'error' as const }
+          /**
+           * loggedIn 的主判据是「聊天输入框是否渲染」，不是正文文本。
+           *
+           * 旧实现先 `document.body.innerText.includes('登录')` 就报 login_required，
+           * 这是已记录的误报：页面加载早期正文里就可能出现「登录」二字（导航、
+           * 页脚、弹窗文案、甚至别人的提问），于是鉴权尚未完成时就被判成未登录。
+           * 反过来，输入框只在真正登录后的会话页才渲染——DeepSeek 未登录时
+           * 直接跳登录页，压根没有 textarea。这一条既不会误报，判据也更贴近
+           * 「能不能干活」：没有输入框就发不出任何请求。
+           *
+           * 不引入新选择器：复用 generate() 里既有的裸标签 'textarea'
+           * （deepseek-web.ts:319），与 selectors.json 的 send/newChat 无关。
+           */
+          const hasInput = await page.evaluate(s => !!document.querySelector(s), CHAT_INPUT_SELECTOR)
+          const txt = await page.evaluate(() => document.body.innerText || '')
+          return judgeLoginState({ hasInput, bodyText: txt })
+        } catch { return { status: 'error', loggedIn: false } }
       })()
     },
     lastChatSessionId() { return chatSessionId },

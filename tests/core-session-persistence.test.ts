@@ -39,7 +39,7 @@ function fakeTransport(chunks: Array<{ reasoning?: string; content?: string }>):
   return {
     prompts,
     async *generate(req) { prompts.push(req.prompt); for (const c of chunks) yield c },
-    async health() { return 'ok' as const },
+    async health() { return { status: 'ok' as const, loggedIn: true } },
     lastChatSessionId() { return 'sess-live' },
     resetSession() {},
     async newChat() {},
