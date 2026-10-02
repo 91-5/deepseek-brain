@@ -6,10 +6,25 @@
 
 把 DeepSeek 网页版包装成一个本地 OpenAI 兼容 HTTP API，让任意 agent（OpenCode、Cline、aider……）把它当成一个 subagent 大脑来用。
 
-**Windows only。** `package.json` 声明了 `os: ["win32"]`，非 Windows 平台安装时即被拒绝。
+## 平台支持（按验证程度分级，别只看标题）
 
-> 📋 `.tasks/` 与 `verdicts/` 是 v0.2.0 的开发过程评审记录，**不是项目运行所需**，
-> 不进 npm 包。想知道 v0.2.0 经历了什么评审、留下了哪些问题 —— 见 [`.tasks/README.md`](.tasks/README.md)。
+**Windows 已实测；Linux/macOS 代码路径存在但未验证。** 请按下面三档读，越往下验证越薄：
+
+| Tier | 平台 | 状态 | 说明 |
+|---|---|---|---|
+| **Tier 1** | Windows | **已实测** | 完整验证：安装、探测、登录、生成、打包。 |
+| **Tier 2** | 桌面 Linux、macOS | **代码路径已存在·未验证** | 探测表与错误信息已跨平台，但**无真机验证**。能否实际拉起 Chrome **未知**。 |
+| **Tier 3** | headless Linux、Docker、WSL | **不承诺** | **首次人工登录需要真实图形显示**，无 display 环境物理上跑不通首登流程。 |
+
+**两个必须知道的前提：**
+
+1. **首次人工登录需要真实图形显示。** 本工具靠 puppeteer 拉**有界面**的 Chrome 让你登录 `chat.deepseek.com`；无 display 的环境（纯 headless 服务器、多数 Docker）**首登流程不成立**——不是配置问题，是物理限制。
+2. **`Linux/macOS` 的「代码路径存在」不等于「能用」。** 探测层已跨平台，但候选路径、可执行位判据、macOS 权限弹窗等**全部未经真机验证**。踩到问题请开 issue，那正是 Tier 2 想收集的信息。
+
+> v0.2.0 之前 `package.json` 声明 `os: ["win32"]`，非 Windows 安装即被拒绝。现已移除该字段：**别再把平台限制当成技术必然**，但也别把 Tier 2 的代码路径当成已验证的可用性。
+
+> 📋 评审记录是 v0.2.0 的开发过程产物，**不是项目运行所需**，不进 npm 包。
+> 想知道 v0.2.0 经历了什么评审、留下了哪些问题 —— 见 [`docs/collaboration/README.md`](docs/collaboration/README.md)。
 
 ---
 
@@ -31,7 +46,7 @@
 
 ## 安装
 
-要求：**Windows** + **Node.js >= 20** + **Chrome 或 Edge**（Chromium 亦可）。
+要求：**Node.js >= 20** + **Chrome 或 Edge**（Chromium 亦可）。平台支持与验证程度见上方 [平台支持](#平台支持按验证程度分级别只看标题)——**Windows 已实测，Linux/macOS 代码路径存在但未验证**。
 
 **方式一：Git 安装（当前推荐，无需 npm 账号/registry）**
 
@@ -217,9 +232,10 @@ result.usageTokens // 估算值
 
 ## 已知限制
 
-请如实读完再用。**Windows only** 是范围决定，不是待办——跨平台探测、snap/Flatpak 路径、无显示器远程场景全部不实现。
+请如实读完再用。**平台支持是分级声明，不是全平台承诺**——见上方 [平台支持](#平台支持按验证程度分级别只看标题)。
 
-- **Windows only。** 非 Windows 平台 `npm install` 即被拒绝。
+- **Windows 已实测；Linux/macOS 代码路径存在但未验证。** `package.json` 不再声明 `os` 字段，非 Windows 平台**可以安装**；但 Linux/macOS 的**实际可用性未经验证**，且 headless 环境首登流程不成立。
+- **cross-platform 探测只做到「诚实分级」，没做到「全平台兼容」。** snap/Flatpak 路径、无显示器远程场景**不实现**（四家主流项目无先例）。
 - **选择器脆弱。** 依赖 `selectors.json` 里的 DOM 选择器，DeepSeek 改版即失效。`/health` 报 `ui_changed` 就是这个信号：既没有输入框也没有登录入口，多半是选择器过期了。
 - **单会话、单账号、并发 = 1。** 本版本不提供并发开关。同一账号开多个上下文会导致网页侧会话互扰与 `sentCount` 串台。
 - **token 估算是 `Math.ceil(text.length / 2)`。** 这是字符数除以 2，不是真 tokenizer——中文/英文混排时偏差很大。compaction 因此可能**偏晚触发**。改阈值用 `COMPACT_THRESHOLD` 或 `deps.threshold`，别指望那个数字准。

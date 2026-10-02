@@ -9,7 +9,7 @@
 import { parseArgs, helpText, cliOptionsToEnv } from './cli-args.js'
 import { loadConfig } from './config.js'
 import { createWebBridge } from './transports/deepseek-web.js'
-import { detectWindowsChrome, chromeNotFoundMessage, windowsChromeCandidates } from './transports/chrome-detect.js'
+import { detectChrome, chromeNotFoundMessage, chromeCandidates } from './transports/chrome-detect.js'
 import { profileSeeded } from './transports/lazy-start.js'
 import { startShim, serveOnly } from './index.js'
 
@@ -69,9 +69,17 @@ async function main(): Promise<void> {
 
   // 早失败：探测不到浏览器就立刻退出，不等第一次请求。
   // 懒启动 + 无浏览器 = 用户等到超时才知道自己没装 Chrome。
-  const chrome = opts.chromePath ?? detectWindowsChrome()
+  //
+  // 显式值（--chrome-path）也要过同一套校验，**不能零校验直通**：此前显式值
+  // 被直接信任、跳过了探测，于是不存在的
+  // 路径能一路打印 `[brain] browser: <ghost>` 通过早检查，直到 bridge 启动阶段
+  // 才炸——「CLI 说存在、bridge 说不存在」的两套真相。现在两者共用 detectChrome
+  // 这一个判据来源，显式值只是提高优先级，不降低校验强度。
+  const chrome = detectChrome(
+    opts.chromePath ? { ...process.env, CHROME_PATH: opts.chromePath } : process.env,
+  )
   if (!chrome) {
-    console.error(chromeNotFoundMessage(windowsChromeCandidates(process.env)))
+    console.error(chromeNotFoundMessage(chromeCandidates(process.env, process.platform)))
     process.exit(1)
   }
   console.log(`[brain] browser: ${chrome}`)

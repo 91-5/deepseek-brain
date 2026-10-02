@@ -1,6 +1,6 @@
 export const DEFAULT_PORT = 8790;
 export function helpText() {
-    return `deepseek-brain v0.2.0 — 把 DeepSeek 网页版包装成 OpenAI 兼容接口（Windows only）
+    return `deepseek-brain v0.2.0 — 把 DeepSeek 网页版包装成 OpenAI 兼容接口（Windows 已实测；Linux/macOS 路径未验证）
 
 用法：
   deepseek-brain [serve]        启动 shim 并在 127.0.0.1 监听（默认）

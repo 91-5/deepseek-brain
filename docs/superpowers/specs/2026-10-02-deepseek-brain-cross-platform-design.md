@@ -177,19 +177,19 @@ puppeteer-core 支持 `launch({ channel })` 让其自行定位，但 `computeSys
 
 **修订说明（2026-10-02，吸收内部预审 B2/B3）：** 本节的初版设计打算「保留 `windowsChromeCandidates` / `detectWindowsChrome` 作为薄封装以向后兼容」。**该设计是错的，已废弃。** 原因：
 
-- `src/cli.ts:7` 与 `src/transports/deepseek-web.ts:354` **两个文件都 import 了旧名 `windowsChromeCandidates`**，并在各自的失败路径上调用它（`cli.ts:66-67`、`deepseek-web.ts:353`）。
+- `src/cli.ts` 与 `src/transports/deepseek-web.ts` **两个文件都 import 了旧名 `windowsChromeCandidates`**，并在各自的失败路径上调用它。**（行号已刻意去掉——`ea44ef8` 落地后行号整体漂移，Ximo O2 已就此开单；本节一律以符号/内容锚定，不用行号。）**
 - 只要旧名还存在（即便只是薄封装），这两个调用点在 darwin/linux 上就会打印 `%LOCALAPPDATA%…chrome.exe` 的候选列表——**非 Windows 用户看到的错误信息指向错误平台**，诚实分级目标被一条错误信息直接破坏。
 - 薄封装的本质是「允许调用点继续使用平台专属的过时名字」，这与本改造的目标方向相反。
 
 **因此：旧名彻底删除，不复存在。** 全部调用点改调新名。
 
-| 现有 | 改造后 | 调用点 |
+| 现有 | 改造后 | 调用点（按内容锚定） |
 |---|---|---|
-| `windowsChromeCandidates(env)` | **删除**（不再是 public 函数） | `cli.ts:7,67` → 改调 `chromeCandidates(env, platform)`；`deepseek-web.ts:354,353` → 同上 |
-| `detectWindowsChrome(env)` | **删除** | `cli.ts:7,66` → 改调 `detectChrome(env, platform)` |
+| `windowsChromeCandidates(env)` | **删除**（不再是 public 函数） | `cli.ts` 的 import 行与 `chromeNotFoundMessage` 调用处 → 改调 `chromeCandidates(env, platform)`；`deepseek-web.ts` 的 import 行与失败路径 → 同上 |
+| `detectWindowsChrome(env)` | **删除** | `cli.ts` 的 import 行与早检查调用处 → 改调 `detectChrome(env, platform)`；`cli-args.ts` 的 `helpText()` 首行平台声明同步 |
 | — | `chromeCandidates(env, platform = process.platform): string[]` | 新增，按平台分派候选表 |
 | — | `detectChrome(env, platform = process.platform): string \| null` | 新增，用 `probe()` 逐个探测 |
-| `resolveChromeExecutable(explicit, env)` | **签名不变**，内部改调 `detectChrome(env)` | `deepseek-web.ts:354` 的 import 行去掉旧名，保留此名 |
+| `resolveChromeExecutable(explicit, env)` | **签名不变**，内部改调 `detectChrome(env)` | `deepseek-web.ts` 的 import 行去掉旧名，保留此名 |
 
 **Windows 候选表**仍然需要一个「只生成 Windows 候选」的内部函数（平台分派需要它），但它**降级为模块内部函数**（不 export），或保留 export 但**任何生产调用点都不得直接使用它**——避免再次出现「调用点绕过平台分派」的洞。
 
@@ -197,7 +197,7 @@ puppeteer-core 支持 `launch({ channel })` 让其自行定位，但 `computeSys
 
 显式值（`--chrome-path` / config）与自动探测**必须复用同一套校验判据**，否则会出现「CLI 早失败探测说存在、bridge 启动时说不存在」的**两套真相**。§4.1 的 `probe()` 是唯一判据来源。
 
-**B2 修复要点：`cli.ts:66` 的 `opts.chromePath ?? detectWindowsChrome()` 分支必须一并改造**——显式值也要过 `detectChrome` 的校验，不能零校验直通。改造后 `cli.ts` 的早检查与 `deepseek-web.ts` 的 bridge 启动必须调用**同一个函数**，从而端到端只有一条真相路径。
+**B2 修复要点：`cli.ts` 中 `opts.chromePath ?? detectWindowsChrome()` 的早检查分支必须一并改造**——显式值也要过 `detectChrome` 的校验，不能零校验直通（实施后该分支落在 `cli.ts` 早检查处，见卡片 Acceptance 的 `detectChrome` 命中判据）。改造后 `cli.ts` 的早检查与 `deepseek-web.ts` 的 bridge 启动必须调用**同一个函数**，从而端到端只有一条真相路径。
 
 #### 仍未消除的第二真相（诚实声明，见 §6）
 

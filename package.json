@@ -1,12 +1,11 @@
 {
   "name": "deepseek-brain",
   "version": "0.2.0",
-  "description": "把 DeepSeek 网页版（无函数调用）包装成 OpenAI 兼容接口，供 OpenCode 作为 subagent 大脑使用。Windows only。",
+  "description": "把 DeepSeek 网页版（无函数调用）包装成 OpenAI 兼容接口，供 OpenCode 作为 subagent 大脑使用。Windows 已实测；Linux/macOS 代码路径存在但未验证。",
   "license": "MIT",
   "repository": { "type": "git", "url": "git+https://github.com/91-5/deepseek-brain.git" },
   "bugs": { "url": "https://github.com/91-5/deepseek-brain/issues" },
   "homepage": "https://github.com/91-5/deepseek-brain#readme",
-  "os": ["win32"],
   "engines": { "node": ">=20" },
   "type": "module",
   "bin": { "deepseek-brain": "dist/cli.js" },

@@ -14,7 +14,7 @@ import {
   saveSessionSnapshot,
   type SessionSnapshot,
 } from '../core/session/store.js'
-import { resolveChromeExecutable, chromeNotFoundMessage, windowsChromeCandidates } from './chrome-detect.js'
+import { resolveChromeExecutable, chromeNotFoundMessage, chromeCandidates } from './chrome-detect.js'
 
 const CHAT_URL = 'https://chat.deepseek.com/'
 const SESSION_URL_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -350,7 +350,7 @@ let starting: Promise<void> | null = null
     // 这里 spawn 的是解析出的可执行文件——puppeteer 侧只负责连 remote debugging 端口，
     // 不存在可传 executablePath 的 launch 调用，别照着文档去找那个参数。
     const chrome = resolveChromeExecutable(config.browser.executablePath)
-    if (!chrome) throw new Error(chromeNotFoundMessage(windowsChromeCandidates(process.env)))
+    if (!chrome) throw new Error(chromeNotFoundMessage(chromeCandidates(process.env, process.platform)))
     chromeProc = spawn(chrome, [
       `--remote-debugging-port=${config.browser.debugPort}`,
       `--user-data-dir=${path.resolve(config.browser.profileDir)}`,
