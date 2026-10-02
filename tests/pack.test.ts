@@ -11,7 +11,9 @@ describe('打包元数据', () => {
   it('不是 private（否则 npm publish 被拒）', () => expect(p.private).toBeUndefined())
   it('版本是 0.2.0', () => expect(p.version).toBe('0.2.0'))
   it('声明 MIT 许可', () => expect(p.license).toBe('MIT'))
-  it('声明 win32 平台限制', () => expect(p.os).toEqual(['win32']))
+  it('不声明 os 平台限制（v0.2.1 起跨平台候选表就位，不再拒绝非 Windows 安装）', () => {
+    expect(p.os).toBeUndefined()
+  })
   it('声明 engines.node', () => expect(p.engines.node).toBe('>=20'))
   it('bin 指向 dist/cli.js', () => expect(p.bin['deepseek-brain']).toBe('dist/cli.js'))
   it('是 ESM-only', () => expect(p.type).toBe('module'))
