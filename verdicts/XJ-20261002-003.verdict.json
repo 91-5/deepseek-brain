@@ -1,0 +1,27 @@
+{
+  "id": "XJ-20261002-003",
+  "artifact": ".tasks/DSB-20261002-001.md",
+  "verdict": "PASS",
+  "blockers": 0,
+  "conditions": 0,
+  "independent": true,
+  "verifier": "ximo@agent-covenant",
+  "ts": "2026-10-02T08:20:21.052Z",
+  "evidence": [
+    "本轮为实现后评审（代码已提交）：评真实 commit 与实跑判据，非前两轮的方案评审。被审 .tasks/DSB-20261002-004.md 写 base=bf3e2d8、HEAD=96314a6，实测 git rev-parse HEAD=fd2fea8（在96314a6后还有738a3e7与fd2fea8两个commit：任务卡登记补遗与一次README文件名规范化），评审范围扩到 bf3e2d8..fd2fea8 覆盖5个commit。除本verdict与DSB-REVIEW-XJ-20261002-003.md外零写入。",
+    "读取范围：.tasks/DSB-20261002-004.md（112行全文，评审REQUEST）、.tasks/DSB-20261002-001.md（121行全文，任务卡Status=IMPLEMENTED）、docs/superpowers/specs/2026-10-02-deepseek-brain-cross-platform-design.md（340行）、src/transports/chrome-detect.ts、src/cli.ts、src/cli-args.ts、src/transports/deepseek-web.ts、tests/chrome-detect-cross-platform.test.ts、tests/chrome-detect.test.ts、tests/pack.test.ts、package.json、README.md、verdicts/XJ-20261002-001.verdict.json、verdicts/XJ-20261002-002.verdict.json。",
+    "独立复跑作者全量回归：npm run typecheck exit 0；npm run typecheck:test exit 0；npm test -> Test Files 22 passed | 1 skipped (23), Tests 205 passed | 1 skipped (206), exit 0（205含新增22例，基线183，与卡一致）；npm pack exit 0 且tarball含dist/transports/chrome-detect.js（7.9kB）；干净目录 npm install <tgz> exit 0；npx deepseek-brain --help 首行显示「（Windows 已实测；Linux/macOS 路径未验证）」；安装后package.json无os字段。",
+    "旧名彻底消失（修B3）：git grep -nF 'windowsChromeCandidates' -- src/ 无命中；git grep -nF 'detectWindowsChrome' -- src/ 无命中；dist/ 两处均0命中；README/package.json 0命中。残留仅在docs/（spec、suspended协作稿、旧plan）与CHANGELOG.md:77历史叙述，非shipped代码非活声明。",
+    "Access原语（修B2根因）：git grep -c 'accessSync' -- src/transports/chrome-detect.ts 输出2（≥1）；git grep -n 'existsSync' -- 同文件无命中。Windows上accessSync(X_OK)退化为F_OK是spec§6已声明未验证项，且resolveChromeExecutable/detectChrome在显式值与自动探测共用同一probe()，已消除cli.ts旧实现「显式值零校验直通」的B2根因；README已知限制247行已警告headless默认关。非blocker。",
+    "三副本同步（修B4）：package.json:4 description = '...Windows 已实测；Linux/macOS 代码路径存在但未验证。'；README.md:11/237 含'Windows 已实测；Linux/macOS 代码路径存在但未验证。'；src/cli-args.ts:17 helpText首行含'(Windows 已实测；Linux/macOS 路径未验证)'。git grep -cF 'Windows 已实测' => package.json:1 / README.md:3；git grep -cF '代码路径存在但未验证' => 同上。共享子串判据无法用'抄进注释'绕过（注释复读不会让package.json产生命中）。",
+    "第四副本核对：作者问'是否还有第四个副本'。git grep -nFi 'windows only' 仅在CHANGELOG.md:77历史条目命中（描述'v0.2.0之前package.json声明os:[win32]...不再'），属变更记录非现状声明，正确保留。三处活副本(src/cli-args.ts, package.json, README.md)已一致。",
+    "窄豁免未越界（修Ximo B2，内容判据更窄）：git diff -U0 bf3e2d8 -- tests/chrome-detect.test.ts 每个+/-行匹配detectChrome|detectWindowsChrome|import（Select-String -NotMatch无命中）；测例数 git grep -c '  it(' = 8 = base 8。原numstat≤4/hunk≤2会误杀（实测numstat=10/hunk=5），内容判据更精准无绕过。",
+    "tests/pack.test.ts仅:14反转（修B4同类）：git diff --numstat = 3+1=4（≤4）；hunk计数=1。原'+/−行内容白名单'因单行it拆三行致'+ })'假阳性，改hunk=1锁范围足够。tests/chrome-path-passthrough.test.ts git diff --exit-code exit 0（未改动，仅import resolveChromeExecutable名字不变）。",
+    "deepseek-web.ts bridge未越界（修Ximo B3）：git diff --numstat = 2+2=4（≤8）；hunk=2（≤2）；每个+/-行匹配chrome-detect|chromeCandidates（Select-String -NotMatch无命中）。实测diff仅两处：(a) import行去windowsChromeCandidates改chromeCandidates；(b) 失败路径改调chromeCandidates(env, process.platform)。bridge启动/生成/会话逻辑零改动。",
+    "两处调用点改调新名（修B2/B3）：git grep -n 'chromeCandidates(|detectChrome(' -- src/cli.ts src/transports/deepseek-web.ts 命中 cli.ts:78/82 与 deepseek-web.ts:353。cli.ts早失败检查与deepseek-web.ts bridge启动检查现用同一判据，无'CLI说存在/bridge说不存在'两条真相。",
+    "Tier表未过度承诺（Q6）：README.md Tier 1=Windows已实测；Tier 2=桌面Linux/macOS'代码路径已存在·未验证''无真机验证''能否实际拉起Chrome未知'；Tier 3=headless/Docker/WSL'不承诺''物理上跑不通首登'。无任何一句暗示macOS可用而未声明未验证。git grep -c 'Tier'=6, -ci 'headless'=5。",
+    "可测性边界诚实（Q4）：tests/chrome-detect-cross-platform.test.ts 22例仅注入platform参数断言候选表构造与分派顺序（chromeCandidates({},'linux')返回固定2条、'darwin'返回4条），不断言宿主探测结果；spec§6不可验证项已声明Windows宿主上Linux PATH扫描分支无法用真实文件系统验证。作者未谎称平台逻辑已真机验证。",
+    "作者自曝可疑行为（Q5/第44-53行）：cli.ts原注释描述旧bug失败路径'opts.chromePath ?? detectWindowsChrome()'，作者改写为不含已删标识符detectWindowsChrome的注释，描述行为仍真实。判定：不构成粉饰（主动披露、描述真实、未掩盖实际行为），但reviewer非独立发现，特此单列透明。",
+    "ts合规：now=2026-10-02T08:20:21.052Z；最新被审文件mtime=package.json 2026-10-02T08:16:10.779Z ≤ ts ≤ now，毫秒级未取整。独立性：verifier非作者jarvis@deepseek-brain；verdicts/仅XJ-20261002-001/002.verdict.json（未动），.tasks/archive/未动，src/tests/package.json/README/spec全未动。"
+  ]
+}
