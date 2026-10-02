@@ -1,4 +1,16 @@
-export type HealthStatus = 'ok' | 'login_required' | 'ui_changed' | 'error';
+/**
+ * `bridge_idle` 与 `login_required` 的区分是这个联合类型里最容易被误读的一对。
+ *
+ * 懒启动下 Chrome 只在首个 chat 请求时才拉起，所以「还没启动」是**完全正常**的
+ * 运行状态，而不是故障。此前 health 在 page 为 null 时一律返回
+ * `login_required`，把「服务刚起还没被叫醒」「bridge 正在起」「页面在但确实没登录」
+ * 三种截然不同的处境压成同一个信号——运维探针据此根本无法决定该等、该重试、
+ * 还是该去登录，只能一律当成「未登录」处理。
+ *
+ * 判据：「bridge 起了吗」看 `page`/`browser` 是否就绪，「登录了吗」看页面内
+ * 是否有聊天输入框。前者是**部署问题**，后者是**账号问题**，处置方式完全不同。
+ */
+export type HealthStatus = 'ok' | 'login_required' | 'ui_changed' | 'error' | 'bridge_idle';
 /**
  * health() 的返回值。
  *

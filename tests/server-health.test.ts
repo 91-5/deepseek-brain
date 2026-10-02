@@ -65,14 +65,14 @@ describe('GET /health', () => {
     return { status: res.status, body: await res.json() as Record<string, unknown> }
   }
 
-  it('未启动：返回 login_required + loggedIn:false，且只调 health（不触发懒启动）', async () => {
+  it('未启动：返回 bridge_idle + loggedIn:false，且只调 health（不触发懒启动）', async () => {
     process.env.CHROME_PATH = 'D:\\definitely-not-here\\chrome.exe'
     const spy = spyTransport(createWebBridge(cfg))
     setTransportGetter(() => spy)
 
     const { status, body } = await get('/health')
     expect(status).toBe(200)
-    expect(body).toEqual({ status: 'login_required', loggedIn: false })
+    expect(body).toEqual({ status: 'bridge_idle', loggedIn: false })
     expect(spy.calls).toEqual(['health']) // 没碰 generate/start → Chrome 仍在睡
   })
 
@@ -83,11 +83,11 @@ describe('GET /health', () => {
     expect(body).toEqual({ status: 'ok', loggedIn: true })
   })
 
-  it('transport 未注入时降级为 login_required，而不是 500', async () => {
+  it('transport 未注入时降级为 bridge_idle，而不是 500', async () => {
     setTransportGetter(() => { throw new Error('transport not initialized') })
     const { status, body } = await get('/health')
     expect(status).toBe(200)
-    expect(body).toEqual({ status: 'login_required', loggedIn: false })
+    expect(body).toEqual({ status: 'bridge_idle', loggedIn: false })
   })
 
   it('非 GET 的 /health 落到 404 分支', async () => {

@@ -2,3 +2,20 @@
 # 原因：Windows CI runner 默认 core.autocrlf=true 会把仓库转成 CRLF，
 # 测试对 fixture 的行锚定匹配与字节比较会因此失败（2026-10-01 首次 CI 实证）。
 * text=auto eol=lf
+
+# .cmd 例外：必须 CRLF。cmd.exe 的批处理解析器按 CRLF 切行，LF-only 的
+# 脚本在 label/goto 处会出现行为异常；而上面的 eol=lf 会在 git checkout
+# 时把仓库里的 .cmd 打回 LF，等于静默废掉 Windows 批处理文件。
+# （2026-10-02 加：scripts\start-shim.cmd 是常驻启动脚本，被这条规则打回 LF 会失效）
+*.cmd text eol=crlf
+
+# .ps1 例外：仓库存 LF（保持上面那条规则），但检出时强制 CRLF + BOM。
+#
+# 理由：脚本里有中文注释，而 Windows PowerShell 5.1 在**没有 BOM** 时按
+# ANSI(系统代码页，简体中文机器上是 GBK) 解析 .ps1——LF-only 的中文脚本会整片
+# 乱码。用 .editorconfig 的 charset 或 IDE 的「UTF-8 with BOM」都不保险：
+# 它们改的是文件内容，不会让 git 在检出时把 LF 还原成 CRLF。
+#
+# 这里只保证 CRLF；BOM 靠文件自身携带（scripts\install-autostart.ps1 已加）。
+# 两者都需要——CRLF 防解析器切行异常，BOM 防编码误判。
+*.ps1 text eol=crlf

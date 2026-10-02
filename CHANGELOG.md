@@ -2,6 +2,39 @@
 
 本文件记录 deepseek-brain 的用户可见变更。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### 修复
+
+- **Chrome 异常退出后 shim 能自愈**。此前 Chrome 崩溃、被用户关窗或休眠后被回收时，
+  puppeteer 的 `browser` / `page` 对象都不会自动置 null——只是变成指向已死进程的
+  陈旧句柄。于是 `startBridge()` 的 `if (browser) return` 一路早退、
+  `if (!page) await startBridge()` 也判定为「已就绪」，shim 就此**永久砖化**：
+  每个请求都 502，Chrome 再也不会被拉起，只能手动重启进程。早退条件改为
+  `browser.isConnected()` 存活探测，断了就清理陈旧句柄后重新 launch。
+  对「常驻后台服务」这个定位来说这是硬伤。
+- `/health` 新增 `bridge_idle` 状态，区分「懒启动尚未拉起 Chrome」与「页面在但
+  确实未登录」。此前懒启动下 health 在 `page` 为 null 时一律返回
+  `login_required`，把两种处置方式完全不同的处境压成同一信号：运维探针无法
+  分辨该等待/重试还是该去登录，只能一律按账号掉线处理。Chrome 异常退出时同样
+  报 `bridge_idle` 而非 `error`，因为那同样是「bridge 不可用」而非「页面读取失败」。
+  `loggedIn` 语义不变，`bridge_idle` 下仍为 `false`（bridge 不可用时确实无从得知
+  登录态）。懒启动契约不变：`/health` 依然不触发 Chrome 启动。
+
+### 新增
+
+- `scripts\start-shim.cmd`：幂等启动器。端口已在监听则直接退出、不起第二实例
+  （两个 node 进程共用一个 `.chrome-profile` 会撞 Chromium profile 锁）；
+  探测失败时拒绝盲启而非猜端口状态；日志按日期追加；启动后轮询 `/health` 至多 30s
+  再退出，node 进程脱离脚本继续存活。
+- `scripts\install-autostart.ps1`：登录自启注册器，默认 dry-run。两种方式：
+  - `-Method Registry`（默认）：写 `HKCU\...\Run`，**无需管理员**。
+  - `-Method ScheduledTask`：`schtasks /create`，需管理员（实测非提权会返回「拒绝
+    访问」）。保留 `ONLOGON` + `/it` + `/rl limited`，用 `ProcessStartInfo.Arguments`
+    手工拼整条命令行以绕开 PS 5.1 原生命令参数绑定把 `/TR` 打碎的问题。
+- `.gitattributes` 增加 `*.cmd text eol=crlf`：全局 `eol=lf` 会在 checkout 时把
+  `.cmd` 打回 LF，cmd.exe 的行解析在 label/goto 处会出异常。
+
 ## [0.2.0]
 
 首个公开发布版本。相比 0.1.0 的核心变化是把项目从「私有 shim」改造成**可复用、可安装的库**。

@@ -419,11 +419,49 @@ let starting: Promise<void> | null = null
     }
   }
 
-  /** 幂等启动：重复调用不重复拉 Chrome。懒启动下 CLI 与首个 generate 可能同时触发，
-   *  故用 starting 复用同一个 promise 而不是各拉一个 Chrome。 */
+  /**
+   * 存活探测：browser 对象非 null **不等于** Chrome 还活着。
+   *
+   * Chrome 崩溃、被用户关窗、或休眠后被系统回收时，puppeteer 的 Browser /
+   * Page 对象都不会自动置 null——它们只是变成了指向已死进程的陈旧句柄。
+   * 于是 `if (browser) return` 会一路早退、`if (!page)` 也判定为「已就绪」，
+   * shim 就此永久砖化：每个请求都 502，Chrome 再也不会被重新拉起，
+   * 只能手动重启进程。对「常驻后台服务」这个定位来说这是硬伤。
+   *
+   * `isConnected()` 是 puppeteer 提供的存活判据，连接断开时返回 false。
+   * 探测本身要吞异常：句柄已死时任何调用都可能抛，而抛异常在这里必须等价于
+   * 「死了」——不能让它冒泡去打断调用方的正常流程。
+   */
+  function isBridgeAlive(): boolean {
+    if (!browser) return false
+    try {
+      return browser.isConnected()
+    } catch {
+      return false
+    }
+  }
+
+  /** Chrome 已死时把闭包状态清干净，让 startBridge 能重新走一遍 launch。 */
+  function resetStaleBridge(): void {
+    browser = null
+    page = null
+    chromeProc = null
+    chatSessionId = null
+  }
+
+  /**
+   * 幂等启动：重复调用不重复拉 Chrome。懒启动下 CLI 与首个 generate 可能同时触发，
+   * 故用 starting 复用同一个 promise 而不是各拉一个 Chrome。
+   *
+   * 早退条件是「存活」而不是「非 null」——见 isBridgeAlive 的注释：陈旧句柄
+   * 曾让这里永久早退，是 shim 无法自愈的直接原因。
+   */
   async function startBridge(): Promise<void> {
     if (starting) return starting
-    if (browser) return
+    if (isBridgeAlive()) return
+    // 上一次留下的陈旧句柄必须先清掉，否则 launch() 里的 retryConnect 会去
+    // 连一个已死的 browser，而且重新赋值前的旧引用会让并发调用误判为已启动。
+    if (browser || page) resetStaleBridge()
     starting = (async () => {
       await launch()
       await openChatPage()
@@ -444,7 +482,9 @@ let starting: Promise<void> | null = null
     },
     async *generate(req): AsyncIterable<GenerateChunk> {
       // (c) 懒启动：首个请求才拉起 Chrome。start() 幂等，重复调用无副作用。
-      if (!page) await startBridge()
+      // 判据是「bridge 活着吗」而非「page 存在吗」——Chrome 死后 page 是陈旧
+      // 句柄，仍非 null，只判 null 会让这次请求直接掉进 502 而不尝试重连。
+      if (!isBridgeAlive()) await startBridge()
       if (!page) throw new Error('bridge not started') // start 失败兜底；同时让 TS 保住 null 收窄
       while (generating) await sleep(200) // 单飞锁：FIFO 等待
       generating = true
@@ -567,14 +607,22 @@ let starting: Promise<void> | null = null
          *
          * 这里**不返回 error**：error 的语义是「页面在但读取失败」，调用方
          * （尤其 CLI 的阻塞登录循环）会把 error 当成需要重试或退出的坏状态。
-         * 「还没启动」是一个完全正常的状态——CLI 就是靠它决定跳过登录等待。
-         * 返回 login_required + loggedIn=false：语义正确（确实还没登录），
-         * 且能让 CLI 的既有分支自然处理，无需为它单开一条错误路径。
          *
-         * 判据用 profile 播种情况而不是猜测：Cookies 在 → 大概率已登录，
-         * 只是 Chrome 还没被拉起来。
+         * 也**不返回 login_required**：那是「页面在、确实没登录」的结论，
+         * 而此刻连页面都没有，判据根本没跑过——把它报成未登录，等于拿一个
+         * 未经检验的断言去覆盖「只是还没被叫醒」这个事实。此前就是这么写的，
+         * 后果是冷启动阶段 /health 永远报 login_required，运维探针无法区分
+         * 「服务没起」和「账号掉线」，只能一律去重新登录。
+         *
+         * 所以这里引入独立的 bridge_idle：它是**部署状态**而非账号状态，
+         * loggedIn 保持 false——bridge 没起时确实无从得知登录态，false 是诚实的值，
+         * 而非「已知未登录」的断言。
          */
-        if (!page) return { status: 'login_required', loggedIn: false }
+        if (!isBridgeAlive()) return { status: 'bridge_idle', loggedIn: false }
+        // isBridgeAlive() 看的是 browser，page 是另一路状态：launch() 中途失败时
+        // browser 可能已连上而 page 仍为 null。显式收窄既让 TS 认得，也避免下面
+        // 两次 evaluate 在 null 上抛成 error（那会把「还没准备好」误报成故障）。
+        if (!page) return { status: 'bridge_idle', loggedIn: false }
         try {
           /**
            * loggedIn 的主判据是「聊天输入框是否渲染」，不是正文文本。
