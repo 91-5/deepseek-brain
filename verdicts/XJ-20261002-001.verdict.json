@@ -1,0 +1,26 @@
+{
+  "id": "XJ-20261002-001",
+  "artifact": ".tasks/DSB-20261002-001.md",
+  "verdict": "FAIL",
+  "blockers": 4,
+  "conditions": [],
+  "independent": true,
+  "verifier": "ximo@agent-covenant",
+  "ts": "2026-10-02T04:52:42.118Z",
+  "evidence": [
+    "本轮为方案评审（卡片 Status OPEN，实现未开始）：评 spec + 任务卡 + 卡片约束，不评已落地代码。被审对象只读；除本 verdict 与 REVIEW-XJ-20261002-001.md 外零写入。",
+    "读取范围：.tasks/DSB-20261002-001.md（105 行全文）、docs/superpowers/specs/2026-10-02-deepseek-brain-cross-platform-design.md（340 行全文）、src/transports/chrome-detect.ts（54 行）、src/cli.ts（114 行）、src/transports/deepseek-web.ts:330-400（launch 路径）、package.json（34 行）、README.md（1-40/210-240）、tests/chrome-detect.test.ts（41 行）、.tasks/archive/REVIEW-DSB-20261002-001.internal-prescreen.md（77 行参照，不参与门禁）。",
+    "PROTOCOL §5 规则 A1 判定：卡片 14 条 Acceptance 中静态可判 10 条当前全为 FAIL 前置态、运行类 4 条 NOT_RUN，A1 不可能满足——FAIL 判 gate 就绪度，非方案质量（Blocker B1）。",
+    "基线实测（PowerShell, cwd=D:\\15812\\Documents\\deepseek-brain）：npm run typecheck -> exit 0；npm run typecheck:test -> exit 0；npm test -> Test Files 21 passed | 1 skipped (22)，Tests 183 passed | 1 skipped (184)，exit 0——183 计数为评审实测，非作者自报。",
+    "Blocker B1 静态实录：git grep -n '\"os\"' -- package.json -> package.json:9 \"os\": [\"win32\"], exit 0；git grep -c 'accessSync' -- src/transports/chrome-detect.ts -> 0 hits exit 1；git grep -n 'existsSync' -> 3 hits (chrome-detect.ts:28,30,46) exit 0；git grep -n 'windowsChromeCandidates\\|detectWindowsChrome' -- src/ -> 9 hits (cli.ts:12,72,74；chrome-detect.ts:6,26,46,51,52；deepseek-web.ts:17,353) exit 0；git grep -c 'Tier' -- README.md -> 0 hits exit 1（headless 2 hits exit 0）；git grep -n 'Windows only' -- README.md -> 3 hits (9,220,222)；git grep -n 'Windows only' -- package.json -> 1 hit (:4 description)。",
+    "Blocker B2：tests/chrome-detect.test.ts:2 import detectWindowsChrome——Deliverables「旧名彻底删除」与 Constraints「不得改动现有测试（只允许新增测试文件）」直接冲突；删除后 typecheck:test 与 npm test 必红。窄豁免修法：仅允许该文件改 import 与被测函数名，断言语义/测例数量/跳过态不变，白名单只此一文件。测试引用 chrome-detect 的另一个文件 tests/chrome-path-passthrough.test.ts:4 仅 import resolveChromeExecutable，不受影响。",
+    "Blocker B3：deepseek-web.ts「只动 import 行与失败路径两处」无机器可检判据（Acceptance 14 条无一约束其 diff）。修法：git diff --numstat 两列和 ≤8；diff -U0 hunk ≤2；diff 每个 +/- 行须匹配 chrome-detect|chromeCandidates（grep -vc ==0）。",
+    "Blocker B4：description ↔ README Tier 一致性无机检断言（现有 grep 各自独立且只查缺席）。修法：定稿共享子串「Windows 已实测；Linux/macOS 代码路径存在但未验证」，加 git grep -cF 跨文件双命中判据。",
+    "内部预审 B1–B5 逐项按当前版本重验：B1 成立（OPEN 卡正确态）；B2/B3 spec §4.4 重写+签名迁移表纸面到位（代码未动，cli.ts:72 仍零校验直通）；B4 spec §5.1 description 入清单纸面到位；B5 §6 补齐 9 项（含 #8 Windows 真实启动未覆盖）+ Tier2 改「代码存在·未验证」纸面到位。预审存档 mtime 04:23:04 早于 spec/card 04:32，其证据数字不沿用。",
+    "对抗性问题结论：B2/B3 删除旧名方向正确不过激（包未发 npm、生产调用点仅 2 处、薄封装即 B3 回归），真洞是 blast radius 少算测试文件；deepseek-web.ts 边界可检化（三条 judge-free 判据）；Tier 措辞残留风险在 npm description 信息顺序与 README:34 第四处 Windows 表述，需共享子串机检兜底；§6 第 8 项足够诚实；ROI 拆两半——诚实修复成立、探测扩表为投机期权，叙事须降级为「停止说谎+代码路径铺垫」。",
+    "观察（非阻断）：O1 Acceptance #4 模式 '\"os\": \\[' 在本 PowerShell 0 hits exit 1（'\"os\"' 模式在场命中）——判据 shell-fragile，须在实现轮真实 shell 复核敏感性并优先 git grep -cF 固定串；O2 请求卡行号漂移（cli.ts:66-67 实为 72-76；deepseek-web.ts:354 import 实为 17）；O3 显式路径失效时 chromeNotFoundMessage 提示自相矛盾（仍建议 Set CHROME_PATH 且不含该路径）；O4 Windows 候选表 6+N 插入顺序未在 spec 钉死；O5 预审存档早于被审版本。",
+    "NOT_RUN（方案评审不执行，实现轮必跑）：npm pack + tarball 含 dist/transports/chrome-detect.js；干净目录安装 tarball 后 npx deepseek-brain --help exits 0。",
+    "ts 合规：实测 mtime——请求卡 2026-10-02T04:34:18.464Z、DSB card 04:32:45.187Z、spec 04:32:30.592Z（Get-Item 被白名单拦截，经 node statSync 取得）；本 ts=2026-10-02T04:52:42.118Z 满足 newest mtime ≤ ts ≤ now，毫秒级未取整。",
+    "独立性：verifier 非作者 jarvis@deepseek-brain；verdicts/ 目录仅 XJ-20261001-001.verdict.json（未动），.tasks/archive/ 未动，均已核对目录清单。"
+  ]
+}

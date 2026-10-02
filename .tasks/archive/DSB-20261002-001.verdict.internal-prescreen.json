@@ -1,0 +1,23 @@
+{
+  "id": "DSB-20261002-001",
+  "artifact": ".tasks/DSB-20261002-001.md",
+  "verdict": "FAIL",
+  "blockers": 5,
+  "conditions": [],
+  "independent": true,
+  "verifier": "oracle@deepseek-brain",
+  "ts": "2026-10-02T04:21:40.245Z",
+  "evidence": [
+    "npm run typecheck -> NOT_RUN in scheme-review round (implementation not started, card OPEN); script ref package.json:19-21",
+    "npm run typecheck:test -> NOT_RUN in scheme-review round (implementation not started); script ref package.json:22",
+    "npm test (183 passed | 1 skipped) -> NOT_RUN (suite not executed); static Get-ChildItem tests/*.test.ts -> 22 files; 183 count is author self-report, not re-measured",
+    "git grep -n '\"os\": [' -- package.json -> package.json:9 hit '\"os\": [\"win32\"]', exit 0 -> acceptance FAIL (pre-change, expected for OPEN card)",
+    "git grep -c 'accessSync' -- src/transports/chrome-detect.ts -> 0 hits, exit 1 -> acceptance FAIL (0 < 1, pre-change expected)",
+    "git grep -n 'existsSync' -- src/transports/chrome-detect.ts -> 3 hits (chrome-detect.ts:28,30,46 incl. comment), exit 0 -> acceptance FAIL (pre-change expected)",
+    "Test-Path tests/chrome-detect-cross-platform.test.ts -> False -> acceptance FAIL (file absent, pre-change expected)",
+    "npm pack (tarball contains dist/transports/chrome-detect.js) -> NOT_RUN (would create artifacts; implementation not started)",
+    "clean-dir install + npx deepseek-brain --help exits 0 -> NOT_RUN (requires pack + clean install; implementation not started)",
+    "git grep -c 'Tier' -- README.md -> 0 hits exit 1; git grep -ci 'headless' -- README.md -> 2 hits (README.md:169,231) exit 0 -> combined acceptance FAIL",
+    "git grep -n 'Windows only' -- README.md -> 3 hits (README.md:9,220,222) exit 0 -> acceptance FAIL (hard-limit wording still present, pre-change expected)"
+  ]
+}

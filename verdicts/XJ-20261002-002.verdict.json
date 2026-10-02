@@ -1,0 +1,25 @@
+{
+  "id": "XJ-20261002-002",
+  "artifact": ".tasks/DSB-20261002-001.md",
+  "verdict": "FAIL",
+  "blockers": 1,
+  "conditions": 0,
+  "independent": true,
+  "verifier": "ximo@agent-covenant",
+  "ts": "2026-10-02T06:06:08.694Z",
+  "evidence": [
+    "本轮为方案复审（代码未动）：评「作者按 B2/B3/B4 修法修订后的卡片与 spec」是否真把上轮 4 个 blocker 消解，不是已完成的代码。被审对象只读；除本 verdict 与 DSB-REVIEW-XJ-20261002-002.md 外零写入。",
+    "读取范围：DSB-REVIEW-REQUEST-XJ-20261002-002.md（100 行全文，DSB- 前缀防覆盖）、DSB-20261002-001.md（113 行全文）、spec 196-340 行全文、上一轮 verdict JSON、上一轮评审卡 lines 17-20（4 个 blocker 原文）、tests/chrome-detect.test.ts（41 行）、tests/chrome-path-passthrough.test.ts（不动态）。",
+    "逐 blocker 核验结论：B1（实现未开始）未消解预期内、卡片 Status 仍 OPEN；B2（窄豁免）已消解文档层——Constraints line 59 写明「仅改 import + 被测函数名（detectWindowsChrome → detectChrome）+ 豁免白名单只此一文件 + passthrough 不在豁免」+ Acceptance #10 numstat ≤ 4 / hunk ≤ 2 + Acceptance #11 passthrough git diff --exit-code 零改动；B3（三判据）已消解文档层——Acceptance #11 原话采纳 numstat ≤ 8 / hunk ≤ 2 / 行内容白名单 chrome-detect|chromeCandidates；B4（跨文件共享子串）已消解文档层——Acceptance #12 定稿共享句 Windows 已实测；Linux/macOS 代码路径存在但未验证 + 双 -cF 各 2 命中；Q3.3（README:34 第四处）已消解——Acceptance #16 -nF '**Windows** +' 无命中；O1 升级版（作者自曝坏判据）已消解——作者把 -F '\"os\"' 换成 Node hasOwnProperty 判据。",
+    "本会话独立复跑作者自曝的 -F '\"os\"' 假阳性（Evidence A）：改前树 git grep -nF '\"os\"' -- package.json -> 2 命中（:6 repository.url + :9 os），exit 0；与作者报告完全一致。Node indexOf('\"os\"') 在 :6 返回 -1，确认 :6 为假阳性（git grep 行为异常）。",
+    "本会话独立复跑 Node hasOwnProperty 判据：改前树 exit 1（os 在场，FAIL 前置态正确）；模拟 delete pkg.os 后写临时 .scratch_pkg.json 跑同一判据 exit 0（可达 PASS，undeletable failure 已消除）；临时文件已删。",
+    "更精确 grep 模式 -nF '\"os\": [' -- package.json：改前树 0 命中 exit 1——比作者选用的 Node 判据更精确且无 :6 假阳性，但作者选择 Node 判据避免未来 URL 子串巧合命中，本评审接受该选择。",
+    "改前树静态可判 11 条全 FAIL 前置态（与上轮同核：open=false）：git grep -c accessSync = 0；git grep -n existsSync = 3 命中 (chrome-detect.ts:28,30,46)；git grep -nF windowsChromeCandidates = 5 命中；git grep -nF detectWindowsChrome = 6 命中；git grep -nF 'Windows only' package.json = 1 命中；git grep -n chromeCandidates(|detectChrome( = 0；git grep -c Tier = 0（headless = 2）；git grep -nF 'Windows only' README.md = 3 命中 (9,220,222)；git grep -nF '**Windows** +' README.md = 1 命中 (:34)；-cF 共享子串 = 0/0。运行类 2 条 NOT_RUN：npm pack + tarball 含 dist/transports/chrome-detect.js；干净目录 npx --help。",
+    "npm test 基线：Test Files 21 passed | 1 skipped (22)，Tests 183 passed | 1 skipped (184)，exit 0——与上轮同一基线，代码未变。",
+    "本轮 Conditions 5 条（评审施加给实现轮）：(1) B2 describe 字符串保留旧名即可（不改 import 与函数名 2 处 numstat ≤ 4 自然 PASS）；(2) B3 三判据 K1 别名注入 / K2 白名单子串夹带两条绕过存在但接受为「诚实实现者下足够强」，作者已加 Acceptance #9 chromeCandidates(|detectChrome( 强制调用形态缓解；(3) B4 共享子串注释绕过仍可，建议实现轮加 grep -v '<!--' 排除或 grep -F '| darwin' ≥ 1 强制 Tier 表；(4) O1 升级版 Node 判据接受（grep 偏离必要代价）；(5) B4 增强建议视实现轮诚实度可选加。",
+    "本轮 Observations：O1（本轮新）Node X_OK Windows 退化为 F_OK 的事实性存疑——本机 Node 24.18.0 实测 accessSync(process.execPath, X_OK) 与 F_OK 均 true，无法判定是否退化；spec §10 / §6 #7 措辞可能过于笼统，本会话 web_fetch 抓 v26.10.0 文档 25 万字符被截断未找到 mode 段落地措辞，建议实现轮复核；O2 :6 假阳性作者自曝与本会话一致；O3 numstat ≤ 4 余量 2 行；O4 Acceptance #9 强制调用形态是 B3 的有效缓解；O5 共享句与 spec §3/§6 措辞一致；O6 Windows 候选表 6+N 插入顺序未钉死，本评审不强加。",
+    "6 个对抗问题（Q1–Q6）回答已写进评审卡：Q1 B2 描述子串字符串保留无害 numstat 自然 PASS；Q2 B3 K1/K2 反例存在但诚实假设下足够强；Q3 B4 注释绕过仍可建议加 grep -v 排除；Q4 Node 判据必要偏离接受；Q5 spec §6 #7 X_OK 退化措辞需实现轮复核；Q6 Review questions 5/6/7 问对地方且 Q7 结论需校准。",
+    "ts 合规：实测 mtime——请求卡 2026-10-02T05:55:47.517Z、DSB card 05:03:50.401Z、spec 05:03:14.398Z（Get-Item 被白名单拦截经 node statSync 取得）；本 ts=2026-10-02T06:06:08.694Z 满足 newest mtime ≤ ts ≤ now，毫秒级未取整。",
+    "独立性：verifier 非作者 jarvis@deepseek-brain；verdicts/ 目录仅 XJ-20261001-001.verdict.json + XJ-20261002-001.verdict.json（未动），.tasks/archive/ 未动；DSB card / src / tests / package.json / README.md / spec 全未动；.scratch_pkg.json 临时副本已删。"
+  ]
+}
