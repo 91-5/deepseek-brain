@@ -78,7 +78,7 @@ sir 下令暂停跨平台任务，先处理 **Ximo 评审邮箱目录的文件�
 ## 相关文件
 
 - `.tasks/DSB-20261002-001.md` — 跨平台任务卡（含 B2/B3/B4 修订）
-- `.tasks/DSB-20261002-002.md` — **另一个任务**：shim 驻留加固（对应 `bf3e2d8`），与本任务无关
+- `.tasks/DSB-20261002-003.md` — **另一个任务**：shim 驻留加固（对应 `bf3e2d8`），与本任务无关。**编号说明**：该卡原为 `002`，因与本项目评审第二轮的 verdict id `XJ-20261002-002` 撞号（同一日期同一序号，两套编号语义不同），于 2026-10-02 改名为 `003`
 - `docs/superpowers/specs/2026-10-02-deepseek-brain-cross-platform-design.md` — 跨平台设计规格
 - `.tasks/archive/` — oracle 内部预审存档（id 冲突已解，非正式 verdict）
 - `.tasks/REVIEW-XJ-20261001-001.md` — 第一轮（v0.2.0 OSS 化）评审卡，已补 Blockers/Conditions 段过 lint
