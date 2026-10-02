@@ -35,6 +35,33 @@
 - `.gitattributes` 增加 `*.cmd text eol=crlf`：全局 `eol=lf` 会在 checkout 时把
   `.cmd` 打回 LF，cmd.exe 的行解析在 label/goto 处会出异常。
 
+### 变更（平台支持）
+
+- **不再硬性拒绝非 Windows 平台安装**，并如实分级声明验证程度。此前 `package.json`
+  声明 `os: ["win32"]`，非 Windows 平台直接安装失败；Chrome 探测表也只有 6 条
+  Windows 硬编码路径，函数名 `windowsChromeCandidates` / `detectWindowsChrome`
+  直接把平台假设编进了标识符。项目的核心价值（把 DeepSeek 网页版包成 OpenAI
+  兼容 API）与平台无关，这个限制是范围决定而非技术必然。
+  - Chrome 探测改造为按平台分派：Windows 保留原有 6 条并补 `ProgramW6432`；
+    macOS 4 条；Linux 2 条固定路径 + 按 PATH 扫描（`google-chrome-stable` →
+    `google-chrome` → `chromium-browser` → `chromium`）。
+  - 探测原语由 `existsSync` 改为 `accessSync(X_OK)`：三平台通用，Unix 校验可
+    执行位，Windows 退化为 `F_OK`（Node 官方行为）。
+  - 旧名 `windowsChromeCandidates` / `detectWindowsChrome` **彻底删除**，不保留
+    薄封装——否则非 Windows 用户在启动失败时仍会看到指向 Windows 的候选路径。
+  - `--chrome-path` 显式值现在与自动探测**共用同一套校验**：此前显式值被直接
+    信任、跳过探测，不存在的路径能通过 CLI 早检查却在 bridge 启动阶段才失败，
+    形成「CLI 说存在、bridge 说不存在」的两条真相。
+  - **诚实分级，不宣称"全平台支持"**：Windows 为 Tier 1（已实测）；桌面
+    Linux/macOS 为 Tier 2（代码路径已存在但**无真机验证**）；headless / Docker /
+    WSL 为 Tier 3（**不承诺**——首次人工登录需要真实图形显示，headless 环境
+    物理上跑不通首登流程）。`package.json` description、README、`--help` 文本
+    三处声明保持一致。
+  - **未实现**：snap / flatpak 路径探测（四家成熟项目 puppeteer、
+    chrome-launcher、karma-chrome-launcher、playwright 均未做，无先例可循）；
+    无条件注入 `--no-sandbox`（puppeteer 官方明确 "strongly discouraged"）；
+    自带 Chromium 下载逻辑（会引入 Gatekeeper / 签名问题）。
+
 ## [0.2.0]
 
 首个公开发布版本。相比 0.1.0 的核心变化是把项目从「私有 shim」改造成**可复用、可安装的库**。
