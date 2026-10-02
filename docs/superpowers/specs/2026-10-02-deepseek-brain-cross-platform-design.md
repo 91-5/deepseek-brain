@@ -245,7 +245,7 @@ puppeteer-core 支持 `launch({ channel })` 让其自行定位，但 `computeSys
 **本次改造在 Windows 机器上能验证的：**
 - ✅ 原行为无回归（现有测试全绿）
 - ✅ macOS/Linux **候选表生成逻辑**（通过注入 `platform` 参数）
-- ✅ **`probe()` 在 Windows 上的退化分支**——即 `X_OK` 被当作 `F_OK` 处理（依据：Node 官方文档）。**Unix 上的 X_OK 可执行位分支不可验证。**
+- ✅ **`probe()` 在 Windows 上的退化分支**——即 `X_OK` 被当作 `F_OK` 处理。**已实测，非仅引文档**（依据 Node 24.18.0 / Windows 实测，2026-10-02，见下方复现命令）。**Unix 上的 X_OK 可执行位分支不可验证。**
 - ✅ 构建、打包、`npx --help`
 - ✅ 改造后**不再有调用点 import 平台专属旧名**（可由 `git grep` 断言，见卡片 Acceptance）
 
@@ -264,6 +264,30 @@ puppeteer-core 支持 `launch({ channel })` 让其自行定位，但 `computeSys
 | 9 | **`ProgramW6432` 的真实语义**——该变量只在「32 位 Node 跑在 64 位 Windows」时才有意义，靠 env 注入测不出真实行为 | 需 32 位 Node 环境 |
 
 **第 9 项的处置**：`ProgramW6432` 仍值得加入候选表（karma / puppeteer 均含此变量），但**不宣称它被验证过**——它只是「与主流实现一致」的防御性补充。
+
+**关于 Windows `X_OK` 退化的复现证据（2026-10-02 补测）**
+
+第二轮评审（`XJ-20261002-002`，Observation O1）对「`X_OK` 在 Windows 退化为 `F_OK`」提出事实性存疑：评审者用 `process.execPath`（一个真实 `.exe`）实测 `accessSync(p, X_OK)` 与 `F_OK` 均返回成功，**无法区分二者**，因此建议实现轮复核。
+
+评审的方法是对的——用可执行文件测这个命题**在原理上不可能证伪**。正确的探针必须是一个**存在但不可执行**的文件。补测如下：
+
+```js
+// 关键：探针文件是 .txt，绝不是可执行文件
+const fs = require('fs'), os = require('os'), path = require('path')
+const tmp = path.join(os.tmpdir(), 'xok-probe.txt')
+fs.writeFileSync(tmp, 'x')
+try {
+  fs.accessSync(tmp, fs.constants.X_OK)
+  console.log('存在但非可执行的 .txt + X_OK -> 通过（说明 Windows 忽略执行位）')
+} catch (e) {
+  console.log('存在但非可执行的 .txt + X_OK -> 抛错', e.code)
+}
+fs.unlinkSync(tmp)
+```
+
+实测结果（Node 24.18.0，Windows）：**`.txt` 文件通过 `X_OK` 检查** —— 证实 Windows 不实现执行位，`X_OK` 语义等同于 `F_OK`。本改造的判据因此正确；但**这只证明了 Windows 侧**，Unix 侧的「不可执行文件会被 `X_OK` 拒绝」仍未验证（见上表第 7 项）。
+
+**方法学教训（值得保留）**：一个用可执行文件去测「可执行位是否被尊重」的探针，其结论必然是「被尊重」——无论平台实际如何。评审者识别出无法判定并标注存疑，而不是顺势判 PASS 或 FAIL，是正确处置。
 
 **关于 macOS 权限的不确定性（不得编造）：**
 - 不确定 puppeteer 走 CDP 路径是否需要 Accessibility / Automation / Screen Recording 权限。
