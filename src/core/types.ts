@@ -23,6 +23,18 @@ export interface Health {
   status: HealthStatus
   /** 是否已鉴权成功。以聊天输入框是否渲染为主判据，见 transports/deepseek-web.ts */
   loggedIn: boolean
+  /**
+   * 最近一次 bridge 启动失败的原始原因，**仅在 `bridge_idle` 时可能带上**。
+   *
+   * 为什么不是新状态值：状态是给调用方做**分支决策**的（该等 / 该重试 / 该登录），
+   * 而失败原因不是分支维度。评审曾建议加 `bridge_error`，但那会破坏外部做
+   * exhaustive switch 的消费者（OpenCode 等），为「多带一句解释」不值得。
+   * 实测上更需要的是：失败路径会全量 teardown，于是 `bridge_idle` 说的就是
+   * 「确实没东西在跑，下个请求会重试」这个真话，原因作为补充信息随行。
+   *
+   * 可选字段，老调用方与老测试的 `toEqual({status, loggedIn})` 形状不变。
+   */
+  error?: string
 }
 export interface GenerateRequest { prompt: string; thinking: boolean; timeoutMs?: number }
 export interface GenerateChunk { reasoning?: string; content?: string }

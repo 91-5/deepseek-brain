@@ -18,7 +18,9 @@ import { resolveChromeExecutable, chromeNotFoundMessage, chromeCandidates } from
 
 const CHAT_URL = 'https://chat.deepseek.com/'
 const SESSION_URL_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const PROGRESS_LOG_MS = 30000
+  const PROGRESS_LOG_MS = 30000
+  /** teardown 时 browser.close() 的上限：超过就放弃 close，直接 taskkill 杀树 */
+  const CLOSE_TIMEOUT_MS = 3000
 
 /** 页内探针：包裹 XHR，捕获 /chat/completion 的 body 与流式 responseText。
  *  幂等：重复注入（整页刷新后 framenavigated 重注）不会双重包裹
@@ -293,7 +295,24 @@ export function createWebBridge(config: AppConfig, opts: WebBridgeOptions = {}):
 let browser: Browser | null = null
 let page: Page | null = null
 /** 正在进行的 start()；用于让 start 幂等且并发安全（懒启动下首请求与 CLI 可能同时触发） */
-let starting: Promise<void> | null = null
+  let starting: Promise<void> | null = null
+
+  /**
+   * 最近一次 bridge 启动失败的原始原因。**只用于可观测性**，不参与任何控制流。
+   *
+   * 失败路径会把 bridge 全量 teardown（见 teardownBridge），于是状态坍缩回
+   * 「和冷启动一模一样」：health() 的 `!isBridgeAlive → bridge_idle` 这时说的是
+   * 真话（确实没东西在跑，且下个请求会重拉）。但只报 bridge_idle 会让运维
+   * 丢掉「上次到底为什么没起来」这个关键信息，只能去翻日志。
+   *
+   * 所以这里把原因**捎带**在 health 的可选字段里，而不新增一个状态值——
+   * 状态是给调用方做分支决策的（「该等 / 该重试 / 该去登录」），而失败原因
+   * 不是分支维度。新增状态值会破坏外部做 exhaustive switch 的消费者
+   * （OpenCode 等），为「多一句解释」付这个代价不划算。
+   *
+   * 成功启动时清空；teardown 不碰它（清掉就等于把刚记下的原因又抹了）。
+   */
+  let lastStartError: string | null = null
   let chromeProc: ReturnType<typeof spawn> | null = null
   let generating = false
   let chatSessionId: string | null = null
@@ -450,21 +469,91 @@ let starting: Promise<void> | null = null
   }
 
   /**
+   * 杀掉 Chrome 进程树。stop() 与 teardownBridge() 共用。
+   *
+   * 只闭包外的进程处置，**不碰闭包变量**——两处对「要不要清 chatSessionId」的
+   * 语义不同（stop 是有意停机，要保住会话 id 供下次深链恢复；teardown 是启动
+   * 失败后的清理，跟着 resetStaleBridge 一起清），合在一起反而容易清错时机。
+   */
+  function killChromeTree(): void {
+    if (chromeProc?.pid) {
+      // Windows 下子 Chrome 进程可能残留持有 profile 锁，taskkill /T /F 杀整树保证可重启（N5）
+      try { spawn('taskkill', ['/pid', String(chromeProc.pid), '/T', '/F'], { stdio: 'ignore' }) } catch { /* taskkill 缺失时退回 chromeProc.kill */ }
+    }
+    chromeProc?.kill()
+  }
+
+  /**
+   * 彻底拆掉一个「进程还活着但不可用」的 bridge：先 close，再杀进程树，最后清状态。
+   *
+   * 为什么必须真的 close 而不是只置 null：这种情况（browser connected 但 page
+   * 为 null 或坏页）进程**还活着**，只置 null 会让每次重试都留下一个孤儿 Chrome，
+   * 而它们还各自持有同一个 `.chrome-profile` 的锁——几次之后 Chrome 起不来了。
+   *
+   * close 必须带超时：puppeteer 对**已死连接**的 close() 没有超时保证，可能挂住。
+   * 挂住会把 `starting` 这个单飞 promise 永久占住，于是后续所有请求都 join 在
+   * 一个永不 settle 的 promise 上——比原 bug 更糟。超时后直接走 taskkill 杀树。
+   */
+  async function teardownBridge(): Promise<void> {
+    const b = browser
+    if (b) {
+      try {
+        await Promise.race([b.close(), sleep(CLOSE_TIMEOUT_MS)])
+      } catch { /* 已死或关闭失败：交给下面的 taskkill */ }
+    }
+    killChromeTree()
+    browser = null
+    page = null
+    chromeProc = null
+    chatSessionId = null
+  }
+
+  /**
    * 幂等启动：重复调用不重复拉 Chrome。懒启动下 CLI 与首个 generate 可能同时触发，
    * 故用 starting 复用同一个 promise 而不是各拉一个 Chrome。
    *
-   * 早退条件是「存活」而不是「非 null」——见 isBridgeAlive 的注释：陈旧句柄
-   * 曾让这里永久早退，是 shim 无法自愈的直接原因。
+   * ## 为什么 `if (starting) return starting` 前面绝不能出现 await
+   *
+   * 「检查 starting → 赋值 starting」必须是一个**同步原子区**。一旦在这两步之间
+   * 插入 await（哪怕只是一个 teardown），两个并发请求就会双双看到 starting=null，
+   * 各自通过检查、各自 launch 一个 Chrome → 双进程 + 抢同一个 `.chrome-profile`
+   * 的锁，之后谁也起不来。所以下面把复用判据、teardown、launch 全部包进 executor
+   * 内部，赋值本身仍是同步的。
+   *
+   * ## 复用判据为什么必须同时看 page
+   *
+   * 只判「存活」不够：`openChatPage()` 里 `page = ...newPage()` 的赋值发生在
+   * `goto`/`openHome()` **之前**，所以导航失败时 browser 仍 connected 而 page
+   * 指向一个空白/坏页——`isBridgeAlive()` 为 true 让这里永久早退，之后每个请求
+   * 都撞 generate 里的 `!page` 或等不到 textarea，502 且永不重试。这就是评审
+   * COND-1 记录的「活着但起不来 → 永久 bridge_idle + 永久 502」。
+   *
+   * ## 失败即全量 teardown
+   *
+   * 抛错前把状态清回「和冷启动一样」，于是下一个请求一定会重试，而 health() 的
+   * `!isBridgeAlive → bridge_idle` 此时是**真话**（确实没东西在跑），
+   * 不再需要为「启动失败」单开一个状态值。失败原因记在 lastStartError 里，
+   * 由 health() 捎带出去。
    */
   async function startBridge(): Promise<void> {
     if (starting) return starting
-    if (isBridgeAlive()) return
-    // 上一次留下的陈旧句柄必须先清掉，否则 launch() 里的 retryConnect 会去
-    // 连一个已死的 browser，而且重新赋值前的旧引用会让并发调用误判为已启动。
-    if (browser || page) resetStaleBridge()
     starting = (async () => {
-      await launch()
-      await openChatPage()
+      try {
+        // 同步区内二次判复用：外层那一行 await 之前就已判过一次，这里是 executor
+        // 开始执行时的最新快照（两者之间只隔一个同步赋值，语义等价但更不易错读）
+        if (isBridgeAlive() && page) return
+        if (browser || page) {
+          if (isBridgeAlive()) await teardownBridge() // 进程还活着：必须真关，否则每次重试泄漏一个 Chrome
+          else resetStaleBridge()                      // 进程已死：置 null 即可，不必等 close 超时
+        }
+        await launch()
+        await openChatPage()
+        lastStartError = null
+      } catch (err) {
+        lastStartError = err instanceof Error ? err.message : String(err)
+        await teardownBridge()
+        throw err
+      }
     })()
     try { await starting } finally { starting = null }
   }
@@ -473,18 +562,18 @@ let starting: Promise<void> | null = null
     async start() { await startBridge() },
     async stop() {
       try { await browser?.close() } catch { /* detached chrome 不随连接关闭而退出 */ }
-      if (chromeProc?.pid) {
-        // Windows 下子 Chrome 进程可能残留持有 profile 锁，taskkill /T /F 杀整树保证可重启（N5）
-        try { spawn('taskkill', ['/pid', String(chromeProc.pid), '/T', '/F'], { stdio: 'ignore' }) } catch { /* taskkill 缺失时退回 chromeProc.kill */ }
-      }
-      chromeProc?.kill()
+      killChromeTree()
+      // 有意**不**清 chatSessionId：stop 是「先停后起」，会话 id 要留着供下次深链恢复。
+      // 启动失败路径走 teardownBridge，那才是连会话 id 一起清。
       browser = null; page = null; chromeProc = null
     },
     async *generate(req): AsyncIterable<GenerateChunk> {
       // (c) 懒启动：首个请求才拉起 Chrome。start() 幂等，重复调用无副作用。
-      // 判据是「bridge 活着吗」而非「page 存在吗」——Chrome 死后 page 是陈旧
-      // 句柄，仍非 null，只判 null 会让这次请求直接掉进 502 而不尝试重连。
-      if (!isBridgeAlive()) await startBridge()
+      // 无条件走 startBridge()：复用决策只在它内部做一处。旧写法
+      // `if (!isBridgeAlive()) await startBridge()` 漏掉了「browser 活着但 page
+      // 是坏页」这一路——page 非 null，于是既不重拉、又必然等不到 textarea，
+      // 15s 后 502 且永不重试（评审 COND-1）。判断散在两处就一定会漏掉一处。
+      await startBridge()
       if (!page) throw new Error('bridge not started') // start 失败兜底；同时让 TS 保住 null 收窄
       while (generating) await sleep(200) // 单飞锁：FIFO 等待
       generating = true
@@ -618,11 +707,20 @@ let starting: Promise<void> | null = null
          * loggedIn 保持 false——bridge 没起时确实无从得知登录态，false 是诚实的值，
          * 而非「已知未登录」的断言。
          */
-        if (!isBridgeAlive()) return { status: 'bridge_idle', loggedIn: false }
+        // 没起起来的时候，把最近一次失败原因捎带出去：状态仍是 bridge_idle
+        // （失败路径已全量 teardown，探针如实看到「没东西在跑，下个请求会重拉」），
+        // 但运维不必翻日志就知道上次为什么没起来。不新增状态值，避免破坏外部
+        // 做 exhaustive switch 的调用方；error 是可选字段，形状不变。
+        const idle = (): Health => (
+          lastStartError
+            ? { status: 'bridge_idle', loggedIn: false, error: lastStartError }
+            : { status: 'bridge_idle', loggedIn: false }
+        )
+        if (!isBridgeAlive()) return idle()
         // isBridgeAlive() 看的是 browser，page 是另一路状态：launch() 中途失败时
         // browser 可能已连上而 page 仍为 null。显式收窄既让 TS 认得，也避免下面
         // 两次 evaluate 在 null 上抛成 error（那会把「还没准备好」误报成故障）。
-        if (!page) return { status: 'bridge_idle', loggedIn: false }
+        if (!page) return idle()
         try {
           /**
            * loggedIn 的主判据是「聊天输入框是否渲染」，不是正文文本。

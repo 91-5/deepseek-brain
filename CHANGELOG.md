@@ -6,6 +6,24 @@
 
 ### 修复
 
+- **bridge 启动失败不再永久 502**（评审 COND-1）。此前 `launch()` 成功但 `openChatPage()`
+  抛错时（网络抖动、DeepSeek 页面改版、会话文件损坏），`browser` 仍 connected 而 `page`
+  为 null、或指向一个导航失败的坏页——`isBridgeAlive()` 为 true 让 `startBridge()` 永久早退，
+  于是每个请求都撞 `bridge not started` 或等不到聊天输入框而 502，**永不重试，只能手动
+  重启进程**；同时 `/health` 报 `bridge_idle`，让运维以为「再等等」而实际永远不会好。
+  三处改动：①复用判据从「活着」收紧为「活着**且**有 page」（`openChatPage()` 里 `page`
+  先赋值、`goto` 后执行，导航失败会留下非 null 的坏页，只判存活会漏掉这一路）；②`generate()`
+  无条件 `await startBridge()`，复用决策只在 startBridge 内部做一处——判断散在两处就一定
+  会漏掉一处；③启动失败时先**全量 teardown**（`close()` 带 3s 超时 + `taskkill /T /F`
+  杀进程树 + 清闭包状态）再抛原始错误，状态因此坍缩回与冷启动一致，下个请求必然重试。
+  teardown 必须真 close 而非只置 null：这种进程还活着，只置 null 会每次重试留下一个孤儿
+  Chrome，而它们各持同一个 `.chrome-profile` 锁，几次之后 Chrome 就起不来了；close 必须
+  带超时，因为 puppeteer 对已死连接的 `close()` 没有超时保证，挂住会永久占住单飞 promise
+  `starting`，后续请求全 join 在一个永不 settle 的 promise 上——比原 bug 更糟。
+  **未采纳评审建议的 `bridge_error` 新状态**：状态是给调用方做**分支决策**的（该等 / 该重试 /
+  该登录），失败原因不是分支维度，新增状态值会破坏外部做 exhaustive switch 的消费者
+  （OpenCode 等）。改为在 `bridge_idle` 的**可选**字段 `error` 里捎带最近一次失败原因——
+  可选字段，老调用方的 `{status, loggedIn}` 形状不变，成功启动后清空。
 - **Chrome 异常退出后 shim 能自愈**。此前 Chrome 崩溃、被用户关窗或休眠后被回收时，
   puppeteer 的 `browser` / `page` 对象都不会自动置 null——只是变成指向已死进程的
   陈旧句柄。于是 `startBridge()` 的 `if (browser) return` 一路早退、
