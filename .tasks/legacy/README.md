@@ -20,6 +20,11 @@
 索引桩里**不写 verdict 计数以外的内容**——blocker 的具体内容已无法复原，
 凭计数反推就是编造。
 
+**索引桩也不复原 verdict 的 `evidence` 块。** 计数不是全貌——以 `XJ-20261002-002`
+为例，它的 evidence 块里就藏着 5 条未计入的 TODO，而 verdict 报的是
+「1 blocker / 0 conditions」。所以**verdict json 本身也不是完整证据**，
+只是一份结论摘要。要复原那些内容，只能找到当年的原始评审文档，而它已丢失。
+
 ## 归档去哪
 
 已 `CLOSED` 的任务卡也从 `.tasks/` 顶层移到这里（PROTOCOL §8 的「一个工作日内
