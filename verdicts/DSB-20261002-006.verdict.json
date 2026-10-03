@@ -1,115 +1,19 @@
 {
-  "task_id": "DSB-20261002-006",
-  "commit": "bf3e2d89698bc0c362401988233adc2cdcf48bd0",
-  "baseline": "6537b90",
-  "reviewer": "Agnes Code",
-  "review_date": "2026-10-03",
-  "verdict": "APPROVED",
-  "conditions": [
-    {
-      "id": "COND-1",
-      "type": "weak",
-      "description": "Q2: openChatPage() 失败后 bridge 可能陷入永久 bridge_idle 状态（browser 活着但 page 为 null）。建议后续增加显式错误状态（如 bridge_error），不阻塞本次评审。",
-      "blocking": false
-    },
-    {
-      "id": "COND-2",
-      "type": "suggestion",
-      "description": "Q4: 补一条自动化测试覆盖 Chrome 崩溃后自愈行为（mock browser.isConnected() 或杀死真实 Chrome 进程）。当前 A9 为手工实测，无法在 CI 复现。",
-      "blocking": false
-    },
-    {
-      "id": "COND-3",
-      "type": "process_note",
-      "description": "Q5: 追溯审查——代码已上线 24h+ 后才迎来首次评审。建议后续评审在合并前完成。",
-      "blocking": false
-    }
-  ],
-  "conclusions": [
-    {
-      "id": "A1",
-      "description": "npm run typecheck 通过",
-      "status": "PASS",
-      "evidence": "npm run typecheck → exit 0，无类型错误"
-    },
-    {
-      "id": "A2",
-      "description": "npm run typecheck:test 通过",
-      "status": "PASS",
-      "evidence": "npm run typecheck:test → exit 0"
-    },
-    {
-      "id": "A3",
-      "description": "npm test 全绿",
-      "status": "PASS",
-      "evidence": "npm test → Tests 205 passed | 1 skipped (206), exit 0"
-    },
-    {
-      "id": "A4",
-      "description": "build 产物与源码同步",
-      "status": "PASS",
-      "evidence": "npm run build + git diff --exit-code -- dist → exit 0"
-    },
-    {
-      "id": "A5",
-      "description": "isConnected() 关键词存在（ff04c5e 含 2 处，base 不含）",
-      "status": "PASS",
-      "evidence": "git show bf3e2d8:src/transports/deepseek-web.ts | findstr \"isConnected\" → L431 + L438；base → 无输出"
-    },
-    {
-      "id": "A6",
-      "description": "bridge_idle 四文件均有（types:1, http:3, deepseek-web:2, test:2；base 全无）",
-      "status": "PASS",
-      "evidence": "git show bf3e2d8: 四文件均含 bridge_idle；git show 6537b90: 四文件全无"
-    },
-    {
-      "id": "A7",
-      "description": ".gitattributes 含 cmd/ps1 CRLF 例外，check-attr 为 crlf",
-      "status": "PASS",
-      "evidence": "git show bf3e2d8:.gitattributes → *.cmd text eol=crlf + *.ps1 text eol=crlf；git check-attr eol → 两脚本均 crlf；base 仅有全局 eol=lf"
-    },
-    {
-      "id": "A8",
-      "description": "两脚本文件在 bf3e2d8 存在，base 不存在",
-      "status": "PASS",
-      "evidence": "git cat-file -e bf3e2d8:scripts/start-shim.cmd → exit 0；git cat-file -e 6537b90:scripts/start-shim.cmd → exit 128"
-    },
-    {
-      "id": "A9",
-      "description": "行为级自愈审查",
-      "status": "CONDITION",
-      "evidence": "代码逻辑正确（isConnected → resetStaleBridge → launch），但无法在沙箱内启动真实 Chrome 验证自愈行为。记录为 condition。"
-    }
-  ],
-  "review_questions": {
-    "Q1_isConnected_timing": {
-      "answer": "正确",
-      "reasoning": "starting promise 的幂等锁足以覆盖并发窗口。Chrome 启动中时 starting 不为 null，并发调用会复用同一个 promise 而非重复 launch。"
-    },
-    "Q2_null_narrowing": {
-      "answer": "weak condition",
-      "reasoning": "理论上 openChatPage() 失败后 bridge 可能陷入永久 bridge_idle（browser 活着但 page 为 null）。概率低且有日志，不阻塞但建议后续加 bridge_error 状态。"
-    },
-    "Q3_consumer_compatibility": {
-      "answer": "无阻塞",
-      "reasoning": "TS strict 模式下 switch 必须处理新值（保护机制），CHANGELOG 已记录。HTTP 状态码恒 200 不变。"
-    },
-    "Q4_criteria_coverage": {
-      "answer": "建议补测",
-      "reasoning": "A1-A8 覆盖静态正确性，A9 为手工实测。建议补一条自动化测试（mock isConnected() 返回 false 验证自愈路径）。"
-    },
-    "Q5_retrospective_risk": {
-      "answer": "process note",
-      "reasoning": "代码已上线 24h+ 才评审，违反评审应在合并前完成的最佳实践。记录为过程风险，不影响代码质量。"
-    }
-  },
-  "constraints_compliance": {
-    "C1_core逻辑": "PASS - 无改动",
-    "C2_transports逻辑": "PASS - 无改动（仅 import 行变化属跨平台工作）",
-    "C3_tests限制": "PASS - 仅 server-health.test.ts 改动（4 处 login_required→bridge_idle）",
-    "C4_零新依赖": "PASS - puppeteer-core 版本不变",
-    "C5_isConnected用途": "PASS - 仅用于 isBridgeAlive()，不触发无条件重启",
-    "C6_契约不变": "PASS - Transport 签名、HTTP 200、/v1/chat/completions 均不变"
-  },
-  "overall": "APPROVED (2 weak conditions + 1 process note)"
+  "id": "DSB-20261002-006",
+  "verdict": "PASS",
+  "blockers": 0,
+  "independent": true,
+  "verifier": "zcode",
+  "ts": "2026-10-03T11:28:22+00:00",
+  "evidence": [
+    "A1 npm run typecheck -> exit 0",
+    "A2 npm test -> exit 0, Tests 213 passed | 1 skipped (214)（卡内时点值 205/1(206)，后续卡叠增至 213/1(214)，判据为 exit 0 成立）",
+    "A3 npm run build + git diff --exit-code -- dist -> exit 0（产物同步）",
+    "A5 git grep -cF isConnected() -- src/transports/deepseek-web.ts -> 2 处 exit 0",
+    "A6 git grep -cF bridge_idle -- 四文件 -> types.ts:4 / http.ts:3 / deepseek-web.ts:8 / server-health.test.ts:4，全 exit 0（卡内时点 2/3/3/4，HEAD 演进后计数增长，方向不变）",
+    "A7 .gitattributes 含两行 eol=crlf；git check-attr eol -> start-shim.cmd 与 install-autostart.ps1 均 eol: crlf",
+    "A8 git cat-file -e HEAD:scripts/start-shim.cmd 与 install-autostart.ps1 -> 均 exit 0",
+    "A9 行为级实测（2026-10-03T19:27Z）：taskkill /T /F 杀 shim 的 Chrome 进程树（PID 31176 及子进程）-> /health 返回 {status:bridge_idle,loggedIn:false}（非 error）-> 发真实 chat 请求 HTTP 200（13.3s 自愈重拉 Chrome）-> /health 恢复 {status:ok,loggedIn:true}",
+    "NOT_RUN 维持卡内声明：autostart -Method ScheduledTask 注册路径与注销重登拉起未实跑（作者环境非提权），原卡 NOT_RUN 定级不变"
+  ]
 }

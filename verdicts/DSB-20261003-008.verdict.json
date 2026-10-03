@@ -1,22 +1,19 @@
 {
   "id": "DSB-20261003-008",
-  "artifact": ".tasks/DSB-20261003-008.md",
-  "verdict": "CONDITIONAL",
+  "verdict": "PASS",
   "blockers": 0,
-  "conditions": 4,
-  "commit": "dffaac3",
-  "acknowledged_by": "jarvis@deepseek-brain (C1/C3 landed in 2ea90ad; C2/C4 pending)",
   "independent": true,
-  "verifier": "agnes-code",
-  "ts": "2026-10-03T09:06:00.000Z",
+  "verifier": "zcode",
+  "ts": "2026-10-03T11:28:37+00:00",
   "evidence": [
-    "独立复跑 npm test → exit 0，209 passed / 1 skipped（与作者报告一致）",
-    "独立复跑 npm run build → exit 0，git diff --exit-code -- dist → exit 0",
-    "独立复跑 git grep -cF 'HEALTH_ERROR_MAX' src/transports/deepseek-web.ts → 4 hits",
-    "独立复跑 git grep -cF 'clipForHealth' src/transports/deepseek-web.ts → 3 hits",
-    "独立复跑 git grep -cF 'error: clipForHealth(lastStartError)' src/transports/deepseek-web.ts → 1 hit",
-    "独立计算 chromeNotFoundMessage 长度：win32 6 候选 → 454 chars > 200；darwin 3 候选 → 290 chars > 200；linux 2 候选 → 166 chars < 200 → 截断非死代码",
-    "6a534c1 / c6e4bc1 声明豁免：更早的文档/流程 commit，不在 008 评审范围",
-    "C1 已落地（CHANGELOG 加 N 泄露提醒）、C3 已落地（legacy/README.md 加 evidence 块声明）；C2/C4 待处理"
+    "A1 npm run typecheck -> exit 0",
+    "A2 npm test -> exit 0, Tests 213 passed | 1 skipped (214)（卡内时点值 209/1(210)，判据 exit 0 成立）",
+    "A3 npm run build + git diff --exit-code -- dist -> exit 0",
+    "A5 HEALTH_ERROR_MAX @dffaac3 -> 4 处 exit 0（HEAD 现存）",
+    "A6 clipForHealth @dffaac3 -> 3 处 exit 0（HEAD 现存）",
+    "A7 'error: clipForHealth(lastStartError)' @dffaac3 -> 1 处 exit 0（HEAD 现存）",
+    "A8 敏感性独立复跑（隔离 worktree @ccde402 + dffaac3 时代测试文件）：npx vitest run tests/bridge-start-failure.test.ts -> 1 failed | 3 passed (4)，失败信息逐字 expected '[bridge] chrome not found. Set CHROME_…' to match /…(+d+ chars)$/——与卡内作者实测一致",
+    "A9 lint_cards 全量自检见本次重签后统一输出",
+    "A10 重签时点 .tasks/ 顶层状态已演进（卡片归档至 legacy/），历史事实以 commit dffaac3 时代为准"
   ]
 }

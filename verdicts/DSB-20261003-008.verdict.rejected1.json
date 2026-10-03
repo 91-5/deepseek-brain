@@ -1,0 +1,22 @@
+{
+  "id": "DSB-20261003-008",
+  "artifact": ".tasks/DSB-20261003-008.md",
+  "verdict": "CONDITIONAL",
+  "blockers": 0,
+  "conditions": 4,
+  "commit": "dffaac3",
+  "acknowledged_by": "jarvis@deepseek-brain (C1/C3 landed in 2ea90ad; C2/C4 pending)",
+  "independent": true,
+  "verifier": "agnes-code",
+  "ts": "2026-10-03T09:06:00.000Z",
+  "evidence": [
+    "独立复跑 npm test → exit 0，209 passed / 1 skipped（与作者报告一致）",
+    "独立复跑 npm run build → exit 0，git diff --exit-code -- dist → exit 0",
+    "独立复跑 git grep -cF 'HEALTH_ERROR_MAX' src/transports/deepseek-web.ts → 4 hits",
+    "独立复跑 git grep -cF 'clipForHealth' src/transports/deepseek-web.ts → 3 hits",
+    "独立复跑 git grep -cF 'error: clipForHealth(lastStartError)' src/transports/deepseek-web.ts → 1 hit",
+    "独立计算 chromeNotFoundMessage 长度：win32 6 候选 → 454 chars > 200；darwin 3 候选 → 290 chars > 200；linux 2 候选 → 166 chars < 200 → 截断非死代码",
+    "6a534c1 / c6e4bc1 声明豁免：更早的文档/流程 commit，不在 008 评审范围",
+    "C1 已落地（CHANGELOG 加 N 泄露提醒）、C3 已落地（legacy/README.md 加 evidence 块声明）；C2/C4 待处理"
+  ]
+}
