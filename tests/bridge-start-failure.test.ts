@@ -70,4 +70,25 @@ describe('bridge 启动失败后的状态（COND-1）', () => {
     expect(h.status).not.toBe('error')
     expect(h.status).not.toBe('login_required')
   })
+
+  it('失败原因在 /health 出口被截断，不把内部路径整段回显（评审 COND-3）', async () => {
+    // 用一条超长且不存在的路径把原始失败消息顶到上限之外
+    const longPath = 'D:\\' + 'nope\\'.repeat(100) + 'chrome.exe'
+    expect(longPath.length).toBeGreaterThan(400)
+    process.env.CHROME_PATH = longPath
+
+    const bridge = makeBridge()
+    await expect(bridge.start()).rejects.toThrow()
+
+    const h = await bridge.health()
+    const err = h.error ?? ''
+    // 截断标记必须出现，说明确实裁过（而不是恰好消息本来就短）
+    expect(err).toMatch(/…\(\+\d+ chars\)$/)
+    // 回显长度必须显著短于原始路径长度，否则等于没截。
+    // 上限常量是模块私有的（不想为测试扩大公开 API 面），所以这里断言相对量：
+    // 标记里的丢失字符数必须与「原始消息长度 - 回显长度」相容。
+    const dropped = Number(/…\(\+(\d+) chars\)$/.exec(err)?.[1] ?? '0')
+    expect(dropped).toBeGreaterThan(0)
+    expect(err.length).toBeLessThan(longPath.length)
+  })
 })

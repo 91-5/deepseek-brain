@@ -12,6 +12,25 @@ const SESSION_URL_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
 const PROGRESS_LOG_MS = 30000;
 /** teardown 时 browser.close() 的上限：超过就放弃 close，直接 taskkill 杀树 */
 const CLOSE_TIMEOUT_MS = 3000;
+/** /health 的 error 字段长度上限，见 clipForHealth */
+const HEALTH_ERROR_MAX = 200;
+/**
+ * 把失败原因裁到 /health 能安全回显的长度。
+ *
+ * 失败原因里可能带本地路径、选择器名、甚至带查询串的 URL，而 `/health` 是
+ * **无认证**的本地探针——完整回显等于把内部结构信息摊给任何能连上这个端口的人。
+ * 评审（COND-3）把这条判为非阻塞，因为只监听 127.0.0.1；这里做的是把
+ * 「非阻塞」变成「默认就截断」，而不是依赖部署细节。
+ *
+ * **只在出口裁**：`lastStartError` 本身保留全文，本地日志与排障不受影响。
+ * 内存里留全文、对外给摘要——两者需求不同，不该共用一个变量。
+ */
+function clipForHealth(message) {
+    if (message.length <= HEALTH_ERROR_MAX)
+        return message;
+    const dropped = message.length - HEALTH_ERROR_MAX;
+    return `${message.slice(0, HEALTH_ERROR_MAX)}…(+${dropped} chars)`;
+}
 /** 页内探针：包裹 XHR，捕获 /chat/completion 的 body 与流式 responseText。
  *  幂等：重复注入（整页刷新后 framenavigated 重注）不会双重包裹
  *
@@ -754,7 +773,7 @@ export function createWebBridge(config, opts = {}) {
                 // 但运维不必翻日志就知道上次为什么没起来。不新增状态值，避免破坏外部
                 // 做 exhaustive switch 的调用方；error 是可选字段，形状不变。
                 const idle = () => (lastStartError
-                    ? { status: 'bridge_idle', loggedIn: false, error: lastStartError }
+                    ? { status: 'bridge_idle', loggedIn: false, error: clipForHealth(lastStartError) }
                     : { status: 'bridge_idle', loggedIn: false });
                 if (!isBridgeAlive())
                     return idle();
