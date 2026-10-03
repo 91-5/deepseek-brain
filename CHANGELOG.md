@@ -30,6 +30,19 @@
   核心机理（`launch()` 成功但 `openChatPage()` 抛错，此时 browser 已 connected）**没有自动化
   覆盖**——要覆盖需给 `puppeteer-core` 注入假 browser，本仓目前没有该注入点，故该机理只有
   代码审查与人工推演支撑。评审时按 NOT_RUN 处理。
+- **坏页路径现在有自动化守护**（评审 COND-2）。上一条修的是「`launch()` 成功但
+  `openChatPage()` 抛错 → browser 活着但 page 是坏页 → 永久 502」，但**那条路一直没有
+  测试**：生产启动链是「spawn 真 Chrome → 连 CDP 端口（最多重试 15×1s）→ openChatPage」，
+  没有注入点就无法在 CI 里造出「已连接但不健康」这个状态。`WebBridgeOptions` 新增
+  **仅测试用**的 `browserFactory`，整段替换掉第一段，而 `openChatPage` / `startBridge` /
+  `teardownBridge` / `health` **一行不改**——测试跑的是真实组合，不是被单独调用的某个阶段。
+  新增 `tests/bridge-badpage.test.ts`（3 项）：原错误透出、走 teardown 真关 browser 而非
+  早退、下一次 `start()` 仍会重试。
+  **这个测试证明什么、不证明什么写在文件顶部**，最要紧一条：注入路径下 `chromeProc`
+  恒为 null，故 `taskkill` 杀进程树与 `close()` 的 3s 超时**都测不到**——「每次重试泄漏一个
+  Chrome」这个最贵的风险仍无自动化覆盖，只能靠 live 门。该选项**不属包的公开 API**
+  （`exports` 只有 `.` 与 `./core`），生产调用方不传时行为逐字不变。
+  敏感性已实测：旧代码下这 3 项全红（护栏使它快速失败，不会真拉起 Chrome）。
 - **`/health` 的 `error` 字段在出口截断**（评审 COND-3）。`bridge_idle` 的可选
   `error` 会捎带最近一次启动失败的原因，而原因里可能带本地路径、选择器名甚至带
   查询串的 URL；`/health` 是**无认证**的本地探针，完整回显等于把内部结构信息摊给
