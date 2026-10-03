@@ -24,6 +24,14 @@ const HEALTH_ERROR_MAX = 200;
  *
  * **只在出口裁**：`lastStartError` 本身保留全文，本地日志与排障不受影响。
  * 内存里留全文、对外给摘要——两者需求不同，不该共用一个变量。
+ *
+ * **将来若要把裁剪后的值写回，请另建一个 `healthErrorView` 变量，不要污染
+ * `lastStartError`。**（评审 COND-2 的提醒）当前设计没有反噬路径，但那是因为
+ * `clipForHealth` 是模块私有函数、只被 `idle()` 读、`lastStartError` 只被
+ * `startBridge()` 写——这是**当前代码的巧合，不是防御性设计**：哪天有人顺手
+ * 把裁剪值赋回去，或某条日志路径改读 `lastStartError`，本地日志就会静默变成
+ * 截断后的摘要，排障时看到的就不再是真实原因。独立变量能让这种误用在类型上
+ * 就暴露出来，而不是靠 review 抓住。
  */
 function clipForHealth(message) {
     if (message.length <= HEALTH_ERROR_MAX)
