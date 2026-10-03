@@ -4,7 +4,17 @@
     "Run gate.py WITHOUT --require. --require is repeatable and its default is every verdict in the directory; passing only the current card's id narrows the check to that card and silently exempts every other verdict.",
     "That is not hypothetical: for a whole session this repo's gate runs passed --require with one id, and 16 violations on DSB-20261002-006 and DSB-20261003-007 stayed hidden - both verdicts carry verdict 'APPROVED' (not in the accepted set) and omit id, blockers, independent, verifier, ts and evidence entirely. A repo-wide run found them in one command.",
     "Verdicts are the reviewer's artifact. When one is structurally nonconformant, the fix is a reissued verdict, never an orchestrator edit."
-  ],  "_absent_on_purpose": [
+  ],
+  "_generated_artifacts_excluded": {
+    "paths": [
+      "dist/transports/deepseek-web.js",
+      "dist/transports/deepseek-web.d.ts",
+      "dist/core/types.d.ts"
+    ],
+    "reason": "Generated build output is excluded from the freshness check, deliberately. Two reasons, and the second is the load-bearing one. First, freshness compares mtimes against the verdict timestamp, and any build rewrites these files - a rebuild that produces byte-identical output still moves the mtime, so the check reports staleness for a file nobody changed. That is not hypothetical: it is exactly what happened to DSB-20261003-009, where the orchestrator's own verification rebuild at 09:57Z retired a verdict signed at 09:54Z over a dist file whose content never changed. Second, and more importantly, their integrity is already covered by a stronger and content-exact check: every card's Acceptance includes build followed by git diff --exit-code -- dist, which proves the committed artifacts are what the current source produces. Freshness would add nothing here while subtracting signal."
+  },
+  "_map_diverges_from_verdict_artifact_field_on_purpose": "DSB-20261003-009's verdict lists the two dist files in its artifact field, and this map no longer does. That is not a silent edit of the reviewer's claim: the verdict says what was read, this map says what should be subject to a freshness check, and the two are allowed to differ. The divergence and its reason are recorded here so a reader can check it rather than infer it.",
+  "_absent_on_purpose": [
     "XJ-20261001-001",
     "XJ-20261002-001",
     "XJ-20261002-002",
@@ -25,8 +35,6 @@
     "src/transports/deepseek-web.ts",
     "src/core/types.ts",
     "tests/bridge-start-failure.test.ts",
-    "dist/transports/deepseek-web.js",
-    "dist/core/types.d.ts",
     "CHANGELOG.md"
   ],
   "DSB-20261003-008": [
@@ -41,8 +49,6 @@
   "DSB-20261003-009": [
     "src/transports/deepseek-web.ts",
     "tests/bridge-badpage.test.ts",
-    "dist/transports/deepseek-web.js",
-    "dist/transports/deepseek-web.d.ts",
     "CHANGELOG.md"
   ]
 }
