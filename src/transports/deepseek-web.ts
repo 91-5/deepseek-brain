@@ -100,7 +100,11 @@ export interface WebBridgeOptions {
    *
    * **不是包的公开 API**：`package.json` 的 exports 只有 `.` 与 `./core`，
    * 本文件不在其中，所以这是**仓内** API 面的变宽。生产调用方（index.ts /
-   * cli.ts）不传它时行为逐字不变。
+   * cli.ts）不传它时**运行时行为等价**——注意是「行为等价」而非「源码逐字不变」：
+   * 源码里确实多了一个分支。（措辞由评审方纠正：原文写「逐字不变」，对行为成立、
+   * 对源码不成立。）
+   * 残余隐患值得知道：`browserFactory` 当前只来自 `opts`，风险为零；但若将来它
+   * 改为可来自全局配置且被意外置真，生产会**静默跳过真实浏览器启动**。
    *
    * 这个缝能证明什么、不能证明什么写在 `tests/bridge-badpage.test.ts` 顶部
    * （假通过清单）。最要紧的一条：factory 路径下 `chromeProc` 恒为 null，

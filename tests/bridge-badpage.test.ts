@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import type { Browser, Page } from 'puppeteer-core'
@@ -24,7 +25,8 @@ import type { Health } from '../src/core/types.js'
  *
  * ## 这个测试证明什么、不证明什么（请勿越界引用）
  *
- * 证明：`launch` 成功而导航抛错时，状态会坍缩、错误可观测、**下一次 start 仍会重试**。
+ * 证明：`launch` 成功而导航抛错时，状态会坍缩、错误可观测、**下一次 start 仍会重试**，
+ * 且 factory 路径的**真实 fs 副作用为零**（不建 profile 目录，见 N4 那项）。
  *
  * 不证明（明确的假通过清单）：
  *
@@ -52,6 +54,14 @@ import type { Health } from '../src/core/types.js'
  */
 
 const cfg = loadConfig({})
+
+/**
+ * N4 断言要用的临时 profile 目录。必须在 beforeAll 里覆盖 `cfg.browser.profileDir`，
+ * 因为 `loadConfig` **没有** profileDir 的 env 键（browser 块只映射 CHROME_PATH→
+ * executablePath），CLI 是靠 `--profile` 直接改对象的——所以这里也只能改对象。
+ * 指向一次性路径，才能断言 factory 路径一个目录都没建。
+ */
+let PROFILE_DIR = ''
 
 /** start() 不在 Transport 接口上（CLI 用它做显式预热），测试里按需取。 */
 type Bridge = ReturnType<typeof createWebBridge> & { start(): Promise<void> }
@@ -109,9 +119,13 @@ describe('坏页路径：launch 成功但导航失败（COND-2）', () => {
   // 指一条不存在的路径，失效时会快速失败，而不是在本机拉起进程。
   beforeAll(() => {
     process.env.CHROME_PATH = 'D:\\definitely-not-here\\chrome.exe'
+    // 一次性临时路径 + 进程号，避免与同机其它测试/并行运行撞名
+    PROFILE_DIR = path.join(os.tmpdir(), `dsb-badpage-profile-${process.pid}`)
+    cfg.browser.profileDir = PROFILE_DIR
   })
   afterAll(() => {
     delete process.env.CHROME_PATH
+    fs.rmSync(PROFILE_DIR, { recursive: true, force: true })
   })
 
   it('抛错时原错误透出，且 health 报 bridge_idle 并带失败原因', async () => {
@@ -151,5 +165,18 @@ describe('坏页路径：launch 成功但导航失败（COND-2）', () => {
     expect(fake.counters.factoryCalls).toBe(2)
     // 重试同样要关掉上一个「活着但不可用」的 browser
     expect(fake.counters.closeCalls).toBeGreaterThanOrEqual(2)
+  })
+
+  it('N4：factory 路径不创建 profile 目录（真实 fs 副作用为零）', async () => {
+    const fake = makeFake({ failMessage: FAIL })
+    const bridge = makeBridge(fake)
+    await expect(bridge.start()).rejects.toThrow(FAIL)
+    // 为什么这条不可省：`CHROME_PATH` 护栏只能证明「没走到解析可执行文件 / spawn /
+    // CDP」——因为那几步会抛错，异常类型不符断言就会红。若将来 `launch()` 被重构成
+    // 把 `ensureProfileDir()` 之类的真实副作用挪到 factory 分支**之前**，建目录不抛错，
+    // 护栏察觉不到、测试照样绿，而仓库里会多出一个 `.chrome-profile`。
+    // （评审方 dp 建议的 N4 是「spy 断言未 spawn、未 CDP」——那两条护栏已经覆盖；
+    // 真正堵不住的洞是「分支之前的 fs 副作用」，所以断言对象换成了目录是否存在。）
+    expect(fs.existsSync(PROFILE_DIR)).toBe(false)
   })
 })
