@@ -24,6 +24,12 @@
   该登录），失败原因不是分支维度，新增状态值会破坏外部做 exhaustive switch 的消费者
   （OpenCode 等）。改为在 `bridge_idle` 的**可选**字段 `error` 里捎带最近一次失败原因——
   可选字段，老调用方的 `{status, loggedIn}` 形状不变，成功启动后清空。
+  新增 `tests/bridge-start-failure.test.ts`（3 项）：以 `CHROME_PATH` 指向不存在路径制造
+  启动失败，断言失败原因被捎带出来、状态不被污染成 `error`/`login_required`、后续请求仍走
+  完整启动路径。**已知缺口（如实记录）**：这 3 项只覆盖「Chrome 探测失败」这一路；COND-1 的
+  核心机理（`launch()` 成功但 `openChatPage()` 抛错，此时 browser 已 connected）**没有自动化
+  覆盖**——要覆盖需给 `puppeteer-core` 注入假 browser，本仓目前没有该注入点，故该机理只有
+  代码审查与人工推演支撑。评审时按 NOT_RUN 处理。
 - **Chrome 异常退出后 shim 能自愈**。此前 Chrome 崩溃、被用户关窗或休眠后被回收时，
   puppeteer 的 `browser` / `page` 对象都不会自动置 null——只是变成指向已死进程的
   陈旧句柄。于是 `startBridge()` 的 `if (browser) return` 一路早退、
