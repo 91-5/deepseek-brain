@@ -1,0 +1,28 @@
+{
+  "id": "DSB-20261003-009",
+  "commit": ["b19ec56", "b59719f"],
+  "artifact": "src/transports/deepseek-web.ts, tests/bridge-badpage.test.ts, dist/transports/deepseek-web.js, dist/transports/deepseek-web.d.ts, CHANGELOG.md",
+  "verdict": "PASS",
+  "blockers": 0,
+  "conditions": [],
+  "independent": true,
+  "verifier": "zcode (Z.ai GLM；非两笔 commit 作者，未参与实现与设计)",
+  "ts": "2026-10-03T09:54:29Z",
+  "evidence": [
+    "A1: npm run typecheck -> exit 0",
+    "A2: npm run typecheck:test -> exit 0",
+    "A3: npm test -> exit 0; Tests 212 passed | 1 skipped (213); Test Files 24 passed | 1 skipped (25)（与卡内数字一致）",
+    "A4: npm run build -> exit 0; git diff --exit-code -- dist -> exit 0",
+    "A5: git grep -cF browserFactory b19ec56 -- src/transports/deepseek-web.ts -> 5 处 exit 0（卡上写 4 处，卡内计数误差，判据成立）; base 2ea90ad -> exit 1",
+    "A6: git grep -cF browserFactory b19ec56 -- tests/bridge-badpage.test.ts -> 3 处 exit 0; git cat-file -e 2ea90ad:tests/bridge-badpage.test.ts -> exit 128（文件不存在）",
+    "A7: 隔离 worktree @2ea90ad（junction 复用 node_modules，仅拷入新测试）-> 3/3 全红，失败信息逐字 'expected … simulated-nav-failure but got [brain] chrome not found. Set CHROME_…'，单测 1-9ms 秒败（证明护栏快速失败、未 spawn Chrome、未等待 retryConnect）；清理按先 rmdir 摘 junction 再 worktree remove 执行，真实 node_modules 完好（vitest 在，115 包无损）",
+    "A8: git log --oneline -2 = 8f29c8f/f71e45d（b59719f 之上叠 4 个 docs commit）；git status 仅 .tasks/DSB-20261003-009.md 修改（评审人换人登记）。逐 diff 核查：4 个后续 commit 均不触碰被审交付物（8f29c8f 对 src 纯注释+dist 同步），A8 意图成立、字面判据过时，已记入评审文档非 Blocker 备注",
+    "Q5 依据: package.json exports 实查仅 ./ ./core ./package.json，transports 非公开 API",
+    "verdict 已用 agent-covenant tools/gate.py 提交前自检 -> GATE: PASS, exit 0"
+  ],
+  "notes": [
+    "非阻塞建议 N1-N3（护栏 env 用还原而非 delete；测试文件补末行换行；worktree 清理先摘 junction 的顺序写进文档）",
+    "Q4 结论：窄缝 + live 门；F3（杀进程树/close 超时）建议补 LIVE_TEST=1 下的进程数泄漏断言，本轮不作为条件",
+    "本轮为替补评审（原定 Agnes Code 产物因沙箱清空丢失）；卡内作者已声明本结论按待核声明处理，复跑是编排方义务"
+  ]
+}
