@@ -1,0 +1,44 @@
+{
+  "_comment": "The repo gates itself. Every id listed here gets the freshness check when you pass --artifact-map; an id with no entry prints a NOTICE saying so. Keep this list equal to what the reviewer actually read. Ids whose reviewed file set I could not establish are deliberately absent rather than guessed: a wrong entry would make the freshness check pass on a fiction, which is worse than the NOTICE admitting it did not run.",
+  "_absent_on_purpose": [
+    "XJ-20261001-001",
+    "XJ-20261002-001",
+    "XJ-20261002-002",
+    "XJ-20261002-003"
+  ],
+  "_absent_reason": "Ximo-era verdicts from before this repo adopted the card protocol. Their reviewed file sets are not recoverable: the cards were renamed during the 2026-10-02 collision surgery and the review documents were never archived. Listing paths I cannot attest to would defeat the purpose of the check, so these ids are left to print a NOTICE.",
+  "DSB-20261002-006": [
+    "src/transports/deepseek-web.ts",
+    "src/core/types.ts",
+    "src/server/http.ts",
+    "tests/server-health.test.ts",
+    "scripts/start-shim.cmd",
+    "scripts/install-autostart.ps1",
+    ".gitattributes",
+    "CHANGELOG.md"
+  ],
+  "DSB-20261003-007": [
+    "src/transports/deepseek-web.ts",
+    "src/core/types.ts",
+    "tests/bridge-start-failure.test.ts",
+    "dist/transports/deepseek-web.js",
+    "dist/core/types.d.ts",
+    "CHANGELOG.md"
+  ],
+  "DSB-20261003-008": [
+    "src/transports/deepseek-web.ts",
+    "tests/bridge-start-failure.test.ts",
+    "CHANGELOG.md",
+    ".tasks/legacy/README.md",
+    ".tasks/legacy/XJ-20261002-001.verdict-index.md",
+    ".tasks/legacy/XJ-20261002-002.verdict-index.md",
+    ".tasks/legacy/XJ-20261002-003.verdict-index.md"
+  ],
+  "DSB-20261003-009": [
+    "src/transports/deepseek-web.ts",
+    "tests/bridge-badpage.test.ts",
+    "dist/transports/deepseek-web.js",
+    "dist/transports/deepseek-web.d.ts",
+    "CHANGELOG.md"
+  ]
+}
