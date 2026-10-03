@@ -1,6 +1,10 @@
 {
   "_comment": "The repo gates itself. Every id listed here gets the freshness check when you pass --artifact-map; an id with no entry prints a NOTICE saying so. Keep this list equal to what the reviewer actually read. Ids whose reviewed file set I could not establish are deliberately absent rather than guessed: a wrong entry would make the freshness check pass on a fiction, which is worse than the NOTICE admitting it did not run.",
-  "_absent_on_purpose": [
+  "_gate_habit": [
+    "Run gate.py WITHOUT --require. --require is repeatable and its default is every verdict in the directory; passing only the current card's id narrows the check to that card and silently exempts every other verdict.",
+    "That is not hypothetical: for a whole session this repo's gate runs passed --require with one id, and 16 violations on DSB-20261002-006 and DSB-20261003-007 stayed hidden - both verdicts carry verdict 'APPROVED' (not in the accepted set) and omit id, blockers, independent, verifier, ts and evidence entirely. A repo-wide run found them in one command.",
+    "Verdicts are the reviewer's artifact. When one is structurally nonconformant, the fix is a reissued verdict, never an orchestrator edit."
+  ],  "_absent_on_purpose": [
     "XJ-20261001-001",
     "XJ-20261002-001",
     "XJ-20261002-002",
