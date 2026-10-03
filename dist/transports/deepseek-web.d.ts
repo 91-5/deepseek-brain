@@ -1,3 +1,4 @@
+import type { Browser } from 'puppeteer-core';
 import type { AppConfig } from '../config.js';
 import type { Transport } from '../core/types.js';
 import { type SessionSnapshot } from '../core/session/store.js';
@@ -13,6 +14,28 @@ export interface WebBridge extends Transport {
 export interface WebBridgeOptions {
     /** 会话持久化文件路径；默认读 env.SESSIONS_FILE，再退化到仓库根 .sessions.json */
     sessionsFile?: string;
+    /**
+     * **仅测试用**：整段替换「解析 Chrome 可执行文件 + spawn 真进程 + 连 CDP 端口」。
+     *
+     * 为什么不提供更细的缝（如只注 `connect` 或只注导航动作）：生产启动链是
+     * `spawn → retryConnect(15 次 ×1s) → openChatPage`，只注其中一环仍会在 CI 里
+     * 真起进程或白等 15 秒。把整段替换掉，生产时序则**原样**保留——
+     * `openChatPage` / `startBridge` / `teardownBridge` / `health` 一行不改，
+     * 测试跑的是真实组合，而不是「某个阶段被单独调用」。
+     *
+     * **不是包的公开 API**：`package.json` 的 exports 只有 `.` 与 `./core`，
+     * 本文件不在其中，所以这是**仓内** API 面的变宽。生产调用方（index.ts /
+     * cli.ts）不传它时行为逐字不变。
+     *
+     * 这个缝能证明什么、不能证明什么写在 `tests/bridge-badpage.test.ts` 顶部
+     * （假通过清单）。最要紧的一条：factory 路径下 `chromeProc` 恒为 null，
+     * 故 `taskkill` 杀进程树与 `close()` 的 3s 超时**都测不到**——
+     * 「每次重试泄漏一个 Chrome」这个最贵的风险本测试证明不了，标注为 live-only。
+     *
+     * 维护税：测试里的 fake 靠 `as unknown as Browser/Page` 转型，
+     * puppeteer 大版本升级时这里最先碎。升级后请连带检查该测试。
+     */
+    browserFactory?: () => Promise<Browser>;
 }
 export interface ResumeEntry {
     key: string;

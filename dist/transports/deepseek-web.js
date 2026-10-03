@@ -297,6 +297,7 @@ function readSelectors() {
 }
 export function createWebBridge(config, opts = {}) {
     const sessionsFile = opts.sessionsFile ?? process.env.SESSIONS_FILE ?? DEFAULT_SESSIONS_FILE;
+    const browserFactory = opts.browserFactory;
     let browser = null;
     let page = null;
     /** 正在进行的 start()；用于让 start 幂等且并发安全（懒启动下首请求与 CLI 可能同时触发） */
@@ -369,6 +370,14 @@ export function createWebBridge(config, opts = {}) {
         }
     }
     async function launch() {
+        // 测试注入点：给了 browserFactory 就整段跳过「解析可执行文件 + spawn 真 Chrome +
+        // 连 CDP 端口」，连同下面的 retryConnect（最多 15 次 ×1s）一并绕开。
+        // profile 目录也不建——它属于「起真浏览器」这一步，测试里起不来。
+        // 早退**不设** lastStartError：注入是测试路径，不是启动失败。
+        if (browserFactory) {
+            browser = await browserFactory();
+            return;
+        }
         await ensureProfileDir();
         // 显式路径优先（--chrome-path / CHROME_PATH），否则自动探测。
         // 这里 spawn 的是解析出的可执行文件——puppeteer 侧只负责连 remote debugging 端口，
