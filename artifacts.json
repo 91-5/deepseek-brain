@@ -50,5 +50,10 @@
     "src/transports/deepseek-web.ts",
     "tests/bridge-badpage.test.ts",
     "CHANGELOG.md"
+  ],
+  "DSB-20261004-010": [
+    "CHANGELOG.md",
+    "README.md",
+    "package.json"
   ]
 }
