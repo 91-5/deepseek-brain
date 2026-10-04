@@ -1,6 +1,21 @@
-# SUSPENDED: 跨平台改造任务挂起说明（2026-10-02）
+# RESUMED: 跨平台改造落地说明（2026-10-04 更新）
 
 > 给未来的自己/下一个会话。**先读这份，再碰任何东西。**
+>
+> **2026-10-04 更新（编排方）**：跨平台改造**已落地**。
+>
+> | 关键事实 | 证据 |
+> |---|---|
+> | 评审闭环（第三轮 PASS） | `verdicts/XJ-20261002-003.verdict.json`（PASS / 0 blockers / independent: true） |
+> | 实现 commits 已合 main | `305dea7` 的祖先链含 `dca3f37`（源码+元数据）+ `520fbaf`（测试）+ `96314a6`（卡片同步），HEAD `305dea7` = `## main...origin/main` |
+> | `package.json` 已无 `os` 字段 | `package.json:3` 仅 `"name"`/`"version"`/`"description"`/`"license"` 等，无 `os` |
+> | README 已分级声明 | `README.md:9-24`「平台支持：按验证程度分级」表（Tier 1/2/3） |
+> | 跨平台探测测试已落地 | `tests/chrome-detect-cross-platform.test.ts`（8448 字节）覆盖 Windows/macOS/Linux |
+> | 旧名彻底删除 | `detectWindowsChrome` / `windowsChromeCandidates` 已从 grep 中消失（`git grep` 实测） |
+>
+> **下文 SUSPENDED 章节保留作历史教训**（邮箱规则、ts 规则、B2-B4 修订、坏判据自曝、
+> 关键设计决策、不做项列表），对将来类似改造仍有参考价值——但「恢复步骤」一节已**不适用**，
+> 请勿按它回头再做一次。
 
 ## 为什么挂起
 
