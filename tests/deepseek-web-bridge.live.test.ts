@@ -8,7 +8,7 @@ describe.runIf(process.env.LIVE_TEST === '1')('web-bridge live', () => {
     const bridge = createWebBridge(config)
     await bridge.start()
     try {
-      // health 自 v0.2.0 起返回 { status, loggedIn }
+      // health 自 v0.2.1 起返回 { status, loggedIn }
       const h = await bridge.health()
       expect(h.status).toBe('ok')
       expect(h.loggedIn).toBe(true)

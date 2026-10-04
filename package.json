@@ -1,6 +1,6 @@
 {
   "name": "deepseek-brain",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "把 DeepSeek 网页版（无函数调用）包装成 OpenAI 兼容接口，供 OpenCode 作为 subagent 大脑使用。Windows 已实测；Linux/macOS 代码路径已存在但未端到端验证（Tier 2），headless/Docker 不承诺首次人工登录。详见 README「平台支持」分级表。",
   "license": "MIT",
   "repository": { "type": "git", "url": "git+https://github.com/91-5/deepseek-brain.git" },
