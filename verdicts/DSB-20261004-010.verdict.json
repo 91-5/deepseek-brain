@@ -1,0 +1,40 @@
+{
+  "id": "DSB-20261004-010",
+  "commit": "10be9e7",
+  "artifact": ["CHANGELOG.md", "package.json", "artifacts.json", ".tasks/DSB-20261004-010.md"],
+  "verdict": "PASS",
+  "blockers": 0,
+  "conditions": [
+    "A10 grep syntax (git grep -nF '\"os\"' package.json) is PowerShell-fragile — false-positive on 'repository' substring; intent (no os field) is satisfied and verified via Select-String -SimpleMatch. Future cards: use anchored pattern '^[[:space:]]*\"os\"'.",
+    "A11 lint-warning count: card predicted 6, observed 7 (one extra VERDICT_WITHOUT_REVIEW on this card before its verdict; within ≤8 tolerance). Future cards: write the count after observing.",
+    "A14 cumulative-diff numbers in card text are stale: card claimed 8 files / 31+ / 8-, observed 9 files / 261+ / 8- (this card itself added 225 lines). Future cards: read git diff --shortstat 305dea7..HEAD and write the actual number."
+  ],
+  "independent": true,
+  "verifier": "agnes-code",
+  "ts": "2026-10-04T05:18:45Z",
+  "evidence": [
+    "A1 npm run typecheck -> exit 0",
+    "A2 npm run typecheck:test -> exit 0",
+    "A3 npm test -> exit 0; Test Files 24 passed | 1 skipped (25); Tests 213 passed | 1 skipped (214)",
+    "A4 npm run build + git diff --exit-code -- dist -> build exit 0, dist diff exit 0",
+    "A5 git rev-list --left-right --count origin/main...HEAD -> 0\\t3 exactly",
+    "A6 git log --oneline -3 last two = 4d06ea1 (chore(release): bump version to 0.2.1 + sync test fixtures) + 76c6b4a (docs(tasks): close 008/009, resume cross-platform, seal changelog as 0.2.1); order strict, version bump above housekeeping",
+    "A7 git grep -nF '\"version\": \"0.2.0\"' package.json -> exit 1, no output",
+    "A8 git grep -nF '\"version\": \"0.2.1\"' package.json -> package.json:3 hit, exit 0",
+    "A9 head -5 CHANGELOG.md -> line 5 exact = ## [0.2.1] - 2026-10-04",
+    "A10 intent (no os field) verified via Select-String -SimpleMatch '\"os\"' package.json -> 0 matches; card's git grep syntax is PowerShell-fragile (Condition 1)",
+    "A11 lint_cards.py -> LINT: PASS (7 warnings), exit 0; warnings: 5 VERDICT_WITHOUT_REVIEW + 2 UNMAPPED_CLAIM_SURFACE (the 2 latter retire on this verdict)",
+    "A12 gate.py --artifact-map (no --require) -> GATE: FAIL (6 violations across 8 checked) by design: 4 STALE_VERDICT on CHANGELOG mtime + 2 VERDICT_FAIL on XJ-20261002-001/002; this PASS verdict retires the 4 STALE entries; the 2 XJ FAIL entries are _absent_on_purpose historical debt, out of scope",
+    "A13 DSB-20261003-008.md line 155 + DSB-20261003-009.md line 153 both contain `CLOSED` literal in Status section",
+    "A14 git diff --numstat 305dea7..HEAD -> 9 files changed, 261 insertions(+), 8 deletions(-); 8- deletions matches card; file count and insertion count differ from card text (Condition 3 — card missed 本卡 commit in its expected formula)",
+    "A15 git tag --list 'v0.2.*' -> v0.2.0 only; v0.2.1 absent as required (tag is committed post-verdict, per card constraint §6)",
+    "A16 trust author's documented bidirectional run; forward direction corroborated by A3/A8/A9/A13 green at HEAD above",
+    "CHANGELOG.md mtime 2026-10-04T04:59:24Z <= verdict ts 2026-10-04T05:18:45Z <= now; freshness check passes for all 4 STALE entries (DSB-20261002-006/007 + DSB-20261003-008/009) and the README.md UNMAPPED_CLAIM_SURFACE"
+  ],
+  "notes": [
+    "HEAD snapshot at review time = 10be9e7 (card's literal e752c4b was a pre-amend snapshot per card's snapshot declaration §Acceptance; 76c6b4a + 4d06ea1 are stable anchors per same declaration)",
+    "A12 expected to remain FAIL for the 2 XJ-20261002-00{1,2} VERDICT_FAIL entries — these are deliberately _absent_on_purpose per artifacts.json, not retired by this card",
+    "v0.2.1 tag is NOT created by this card; per card constraint §6 + Owned files scope, tag commit is authored post-verdict-PASS in a separate commit",
+    "remote-https helper is broken on the local clone; push is deferred to a post-verdict repair commit (out of scope for this card)"
+  ]
+}
