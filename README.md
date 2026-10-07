@@ -266,6 +266,48 @@ result.usageTokens // 估算值
 
 ---
 
+## 官方 API 现状与本项目定位（2026-10-06 记录）
+
+> 本节为决策记录，非运行所需。来源：`https://api-docs.deepseek.com/`（2026-10-06 抓取，含 Quick Start / Pricing / OpenCode 集成三页）。
+
+**DeepSeek 官方 API 已存在，且原生支持 OpenCode。** 这意味着本项目（网页版 shim）最初的存在理由——「没有官方 API 才需要逆向 / UI 驱动」——已经消失。
+
+### 官方 API 事实
+
+| 项 | 值 |
+| --- | --- |
+| base_url（OpenAI 格式） | `https://api.deepseek.com` |
+| base_url（Anthropic 格式） | `https://api.deepseek.com/anthropic` |
+| 模型 | `deepseek-flash`（= DeepSeek-V4.1-Flash）、`deepseek-v4-pro` |
+| 上下文 | 1M；最大输出 384K |
+| thinking 模式 | 支持（默认开，可关）|
+| 并发上限 | flash 2500 / pro 500 |
+| 定价（flash，每 1M token）| 输入 cache miss $0.15–0.3，输出 $0.6–1.2；off-peak 半价（UTC 工作日 01–04 / 06–10 为峰）|
+| 鉴权 | API key，从 `platform.deepseek.com/api_keys` 申请 |
+| OpenCode 集成 | `opencode` → `/connect deepseek` → 选 `deepseek-flash`（OpenCode ≥ v1.18.30）|
+
+### 对本项目（shim）的冲击
+
+| 维度 | shim（现状，localhost:8790）| 官方 API |
+| --- | --- | --- |
+| 存在理由 | 当年无官方 API | **已存在** → shim 理由消失 |
+| 模型 | web 版（免费但未知具体版本）| V4.1-Flash（1M + thinking）|
+| 依赖 | Chrome + puppeteer + 登录态 | 无浏览器 |
+| 腐坏风险 | selector 腐坏（头号痛点）| 无 |
+| 限流 | web 版 429（已遇过）| 2500 并发 |
+| 成本 | 免费（耗自己账号）| ~$0.15–1.2 / 1M（极便宜）|
+
+**shim 现在只剩「免费」这一个优势。**
+
+### 当前决策（v0.2.1）
+
+维持现状，shim 继续作为「无 API key 时的免费兜底」服役。原因：
+- web 版目前稳定（60fps 实测服役），selector 未腐坏；
+- 官方 API 需要 Sir 申请 key + 小额充值，非零成本动作；
+- 「痛点驱动」原则——等 selector 真的烂掉或免费路径被封，再评估退役 / 双轨。
+
+> 牵连提示（不在本项目范围）：若未来退役 shim，调用方（Jarvis 的「默认问 dp 大脑」纪律、opencode.jsonc 的 `dp-brain` provider）需一并把落点从 `localhost:8790` 改到官方 API。该改动属于跨项目配置，需单独评审。
+
 ## License
 
 [MIT](LICENSE)
