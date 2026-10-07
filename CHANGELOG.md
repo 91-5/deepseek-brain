@@ -178,7 +178,7 @@
 - compaction 触发阈值未变（仍为 40000）。
 - 监听地址与路由未变（`127.0.0.1` + `/v1/models`、`/v1/chat/completions`）。
 
-## [0.1.0]
+## 0.1.0
 
 初始内部版本。
 
@@ -188,4 +188,3 @@
 
 [0.2.1]: https://github.com/91-5/deepseek-brain/releases/tag/v0.2.1
 [0.2.0]: https://github.com/91-5/deepseek-brain/releases/tag/v0.2.0
-[0.1.0]: https://github.com/91-5/deepseek-brain/releases/tag/v0.1.0
